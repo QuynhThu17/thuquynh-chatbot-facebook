@@ -1,0 +1,1401 @@
+{
+  "project_info": {
+    "name": "MekongAI Social Media Bot System",
+    "version": "1.0.0",
+    "description": "Hệ thống quản lý Social Media Bot toàn diện với CRM, Knowledge Management và nhiều tính năng khác",
+    "company": "MekongAI",
+    "api_base_url": "/api/v1",
+    "super_admin_api": "/mekongai-internal-api"
+  },
+  "system_architecture": {
+    "description": "Hệ thống được thiết kế theo kiến trúc hierarchy với khả năng White Label",
+    "hierarchy_levels": [
+      {
+        "level": 0,
+        "role": "SuperAdmin (MekongAI)",
+        "permissions": "Toàn quyền kiểm soát hệ thống",
+        "description": "Quản lý White Label partners, system monitoring"
+      },
+      {
+        "level": 1,
+        "role": "White Label Admin",
+        "permissions": "Toàn quyền trong hệ thống con",
+        "description": "Tự quản lý branding, tạo partners và users"
+      },
+      {
+        "level": 2,
+        "role": "Partner Admin (Reseller)",
+        "permissions": "Quản lý customers và bán packages",
+        "description": "Tạo end-users, bán packages, theo dõi commission"
+      },
+      {
+        "level": 3,
+        "role": "System Admin",
+        "permissions": "Admin trong tổ chức",
+        "description": "Quản lý users và settings trong tổ chức"
+      },
+      {
+        "level": 4,
+        "role": "End Users",
+        "permissions": "Dựa theo gói đã mua",
+        "description": "Sử dụng bot, CRM theo giới hạn gói"
+      }
+    ]
+  },
+  "main_features": {
+    "1_user_management": {
+      "name": "Quản lý Người dùng & Phân quyền",
+      "description": "Hệ thống quản lý người dùng với phân quyền đa cấp và hierarchy",
+      "api_prefix": "/users",
+      "customer_workflow": {
+        "step_1": "Đăng ký tài khoản qua email/password hoặc Google OAuth",
+        "step_2": "Thiết lập profile và upload avatar",
+        "step_3": "Chọn gói dịch vụ phù hợp",
+        "step_4": "Quản lý thông tin cá nhân và settings"
+      },
+      "sub_features": {
+        "user_registration": {
+          "name": "Đăng ký & Xác thực",
+          "description": "Tạo tài khoản mới với nhiều phương thức",
+          "apis": [
+            {
+              "method": "POST",
+              "endpoint": "/users",
+              "description": "Tạo user mới",
+              "params": ["name", "email", "password", "method"]
+            }
+          ]
+        },
+        "user_profile": {
+          "name": "Quản lý Profile",
+          "description": "Cập nhật thông tin cá nhân và avatar",
+          "apis": [
+            {
+              "method": "GET",
+              "endpoint": "/users/{user_id}",
+              "description": "Lấy thông tin user"
+            },
+            {
+              "method": "PUT",
+              "endpoint": "/users/{user_id}",
+              "description": "Cập nhật thông tin user"
+            }
+          ]
+        },
+        "hierarchy_management": {
+          "name": "Quản lý Cấp bậc",
+          "description": "Tạo và quản lý mối quan hệ parent-children",
+          "apis": [
+            {
+              "method": "POST",
+              "endpoint": "/hierarchy",
+              "description": "Tạo hierarchy mới"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/hierarchy/{user_id}",
+              "description": "Lấy thông tin hierarchy"
+            }
+          ]
+        },
+        "features_roles": {
+          "name": "Quản lý Tính năng & Vai trò",
+          "description": "Định nghĩa features và roles trong hệ thống",
+          "apis": [
+            {
+              "method": "POST",
+              "endpoint": "/features",
+              "description": "Tạo feature mới"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/features",
+              "description": "Lấy danh sách features"
+            },
+            {
+              "method": "POST",
+              "endpoint": "/roles",
+              "description": "Tạo role mới"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/roles",
+              "description": "Lấy danh sách roles"
+            }
+          ]
+        },
+        "balance_management": {
+          "name": "Quản lý Số dư",
+          "description": "Theo dõi và quản lý số dư tài khoản",
+          "apis": [
+            {
+              "method": "GET",
+              "endpoint": "/users/{user_id}/balance",
+              "description": "Lấy balance của user"
+            },
+            {
+              "method": "POST",
+              "endpoint": "/users/{user_id}/balance/add",
+              "description": "Thêm balance cho user"
+            }
+          ]
+        },
+        "packages_subscriptions": {
+          "name": "Quản lý Gói & Đăng ký",
+          "description": "Tạo gói dịch vụ và quản lý đăng ký",
+          "apis": [
+            {
+              "method": "POST",
+              "endpoint": "/packages",
+              "description": "Tạo package mới"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/packages",
+              "description": "Lấy danh sách packages"
+            },
+            {
+              "method": "POST",
+              "endpoint": "/subscriptions",
+              "description": "Tạo subscription mới"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/users/{user_id}/subscriptions",
+              "description": "Lấy subscriptions của user"
+            }
+          ]
+        },
+        "transactions": {
+          "name": "Quản lý Giao dịch",
+          "description": "Theo dõi lịch sử giao dịch và thanh toán",
+          "apis": [
+            {
+              "method": "POST",
+              "endpoint": "/transactions",
+              "description": "Tạo transaction mới"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/users/{user_id}/transactions",
+              "description": "Lấy transactions của user"
+            }
+          ]
+        }
+      }
+    },
+    "2_social_media_management": {
+      "name": "Quản lý Social Media",
+      "description": "Kết nối và quản lý nhiều tài khoản social media platforms",
+      "api_prefix": "/socials",
+      "customer_workflow": {
+        "step_1": "Vào 'Quản lý Socials' từ sidebar",
+        "step_2": "Chọn platform cần kết nối (Facebook, Instagram, Twitter, LinkedIn)",
+        "step_3": "Nhấn 'Kết nối tài khoản mới' và thực hiện OAuth",
+        "step_4": "Chọn pages/accounts muốn sử dụng cho bot",
+        "step_5": "Quản lý access tokens và permissions"
+      },
+      "sub_features": {
+        "social_platforms": {
+          "name": "Quản lý Platforms",
+          "description": "Tạo và quản lý các social media platforms",
+          "apis": [
+            {
+              "method": "POST",
+              "endpoint": "/socials",
+              "description": "Tạo social platform mới"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/socials",
+              "description": "Lấy danh sách social platforms"
+            }
+          ]
+        },
+        "account_connection": {
+          "name": "Kết nối Tài khoản",
+          "description": "Kết nối tài khoản social media với hệ thống",
+          "apis": [
+            {
+              "method": "POST",
+              "endpoint": "/social-accounts",
+              "description": "Tạo kết nối social account"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/social-accounts",
+              "description": "Lấy danh sách social accounts"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/users/{user_id}/social-accounts",
+              "description": "Lấy social accounts của user"
+            }
+          ]
+        },
+        "facebook_pages": {
+          "name": "Quản lý Facebook Pages",
+          "description": "Quản lý Facebook pages và webhook verification",
+          "apis": [
+            {
+              "method": "POST",
+              "endpoint": "/facebook-pages",
+              "description": "Thêm Facebook page"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/facebook-pages",
+              "description": "Lấy danh sách Facebook pages"
+            },
+            {
+              "method": "PUT",
+              "endpoint": "/facebook-pages/{page_id}/webhook",
+              "description": "Cập nhật webhook verification"
+            }
+          ]
+        },
+        "instagram_accounts": {
+          "name": "Quản lý Instagram",
+          "description": "Kết nối và quản lý Instagram accounts",
+          "apis": [
+            {
+              "method": "POST",
+              "endpoint": "/instagram-accounts",
+              "description": "Thêm Instagram account"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/instagram-accounts",
+              "description": "Lấy danh sách Instagram accounts"
+            }
+          ]
+        },
+        "twitter_accounts": {
+          "name": "Quản lý Twitter",
+          "description": "Kết nối và quản lý Twitter accounts",
+          "apis": [
+            {
+              "method": "POST",
+              "endpoint": "/twitter-accounts",
+              "description": "Thêm Twitter account"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/twitter-accounts",
+              "description": "Lấy danh sách Twitter accounts"
+            }
+          ]
+        },
+        "linkedin_accounts": {
+          "name": "Quản lý LinkedIn",
+          "description": "Kết nối và quản lý LinkedIn accounts",
+          "apis": [
+            {
+              "method": "POST",
+              "endpoint": "/linkedin-accounts",
+              "description": "Thêm LinkedIn account"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/linkedin-accounts",
+              "description": "Lấy danh sách LinkedIn accounts"
+            }
+          ]
+        }
+      }
+    },
+    "3_bot_management": {
+      "name": "Quản lý Bot & Tự động hóa",
+      "description": "Hệ thống tạo và quản lý bot với nhân dạng và quy trình tùy chỉnh",
+      "api_prefix": "/bots",
+      "customer_workflow": {
+        "step_1": "Vào 'Quản lý Bot' → Tab 'Quản lý Bot'",
+        "step_2": "Nhấn 'Tạo Bot Mới' và làm theo hướng dẫn từng bước",
+        "step_3": "Chọn/tạo Nhân dạng cho bot (personality)",
+        "step_4": "Chọn/tạo Quy trình xử lý (workflow)",
+        "step_5": "Cấu hình vai trò, mục tiêu, nhiệm vụ cho bot",
+        "step_6": "Chọn kiến thức từ CRM và documents",
+        "step_7": "Kết nối với social media platforms",
+        "step_8": "Test bot và bật/tắt hoạt động"
+      },
+      "sub_features": {
+        "identity_management": {
+          "name": "Quản lý Nhân dạng",
+          "description": "Tạo và quản lý personality cho bot",
+          "apis": [
+            {
+              "method": "POST",
+              "endpoint": "/identities",
+              "description": "Tạo identity mới"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/identities",
+              "description": "Lấy danh sách identities"
+            },
+            {
+              "method": "PUT",
+              "endpoint": "/identities/{identity_id}",
+              "description": "Cập nhật identity"
+            },
+            {
+              "method": "DELETE",
+              "endpoint": "/identities/{identity_id}",
+              "description": "Xóa identity"
+            }
+          ]
+        },
+        "procedure_management": {
+          "name": "Quản lý Quy trình",
+          "description": "Tạo workflow xử lý cho bot",
+          "apis": [
+            {
+              "method": "POST",
+              "endpoint": "/procedures",
+              "description": "Tạo procedure mới"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/procedures",
+              "description": "Lấy danh sách procedures"
+            },
+            {
+              "method": "PUT",
+              "endpoint": "/procedures/{procedure_id}",
+              "description": "Cập nhật procedure"
+            },
+            {
+              "method": "DELETE",
+              "endpoint": "/procedures/{procedure_id}",
+              "description": "Xóa procedure"
+            }
+          ]
+        },
+        "bot_instances": {
+          "name": "Quản lý Bot",
+          "description": "Tạo và quản lý các bot instances",
+          "apis": [
+            {
+              "method": "POST",
+              "endpoint": "/bots",
+              "description": "Tạo bot mới"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/bots",
+              "description": "Lấy danh sách bots"
+            },
+            {
+              "method": "PUT",
+              "endpoint": "/bots/{bot_id}",
+              "description": "Cập nhật bot"
+            },
+            {
+              "method": "DELETE",
+              "endpoint": "/bots/{bot_id}",
+              "description": "Xóa bot"
+            },
+            {
+              "method": "POST",
+              "endpoint": "/bots/{bot_id}/copy",
+              "description": "Copy bot"
+            },
+            {
+              "method": "PUT",
+              "endpoint": "/bots/{bot_id}/status",
+              "description": "Bật/tắt bot"
+            }
+          ]
+        }
+      }
+    },
+    "4_crm_system": {
+      "name": "Hệ thống CRM Hoàn chỉnh",
+      "description": "Quản lý khách hàng, sản phẩm, kho, đơn hàng và vận chuyển",
+      "api_prefix": "/crm",
+      "customer_workflow": {
+        "step_1": "Thiết lập Company profile (mặc định có 1 company)",
+        "step_2": "Import/thêm Contacts (khách hàng, nhân viên)",
+        "step_3": "Tạo danh mục Products với hình ảnh và thông tin chi tiết",
+        "step_4": "Thiết lập Warehouses và quản lý inventory",
+        "step_5": "Nhận Orders tự động từ bot hoặc tạo thủ công",
+        "step_6": "Xử lý Shipments với tracking number"
+      },
+      "sub_features": {
+        "company_management": {
+          "name": "Quản lý Công ty",
+          "description": "Quản lý thông tin công ty và cấu trúc tổ chức",
+          "apis": [
+            {
+              "method": "POST",
+              "endpoint": "/companies",
+              "description": "Tạo company mới"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/companies",
+              "description": "Lấy danh sách companies"
+            },
+            {
+              "method": "PUT",
+              "endpoint": "/companies/{company_id}",
+              "description": "Cập nhật company"
+            },
+            {
+              "method": "DELETE",
+              "endpoint": "/companies/{company_id}",
+              "description": "Xóa company"
+            }
+          ]
+        },
+        "contact_management": {
+          "name": "Quản lý Liên hệ",
+          "description": "Quản lý khách hàng, nhân viên và đối tác",
+          "apis": [
+            {
+              "method": "POST",
+              "endpoint": "/contacts",
+              "description": "Tạo contact mới"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/contacts",
+              "description": "Lấy danh sách contacts"
+            },
+            {
+              "method": "PUT",
+              "endpoint": "/contacts/{contact_id}",
+              "description": "Cập nhật contact"
+            },
+            {
+              "method": "DELETE",
+              "endpoint": "/contacts/{contact_id}",
+              "description": "Xóa contact"
+            },
+            {
+              "method": "POST",
+              "endpoint": "/contacts/import",
+              "description": "Import contacts từ file"
+            }
+          ]
+        },
+        "product_management": {
+          "name": "Quản lý Sản phẩm",
+          "description": "Quản lý catalog sản phẩm với media và pricing",
+          "apis": [
+            {
+              "method": "POST",
+              "endpoint": "/products",
+              "description": "Tạo product mới"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/products",
+              "description": "Lấy danh sách products"
+            },
+            {
+              "method": "PUT",
+              "endpoint": "/products/{product_id}",
+              "description": "Cập nhật product"
+            },
+            {
+              "method": "DELETE",
+              "endpoint": "/products/{product_id}",
+              "description": "Xóa product"
+            },
+            {
+              "method": "POST",
+              "endpoint": "/products/import",
+              "description": "Import products từ Excel/SQL"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/products/search",
+              "description": "Tìm kiếm products"
+            }
+          ]
+        },
+        "warehouse_management": {
+          "name": "Quản lý Kho",
+          "description": "Quản lý kho và inventory tracking",
+          "apis": [
+            {
+              "method": "POST",
+              "endpoint": "/warehouses",
+              "description": "Tạo warehouse mới"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/warehouses",
+              "description": "Lấy danh sách warehouses"
+            },
+            {
+              "method": "PUT",
+              "endpoint": "/warehouses/{warehouse_id}",
+              "description": "Cập nhật warehouse"
+            },
+            {
+              "method": "PUT",
+              "endpoint": "/warehouses/{warehouse_id}/inventory",
+              "description": "Cập nhật inventory"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/warehouses/{warehouse_id}/inventory",
+              "description": "Lấy inventory của warehouse"
+            }
+          ]
+        },
+        "order_management": {
+          "name": "Quản lý Đơn hàng",
+          "description": "Xử lý đơn hàng từ tạo đến hoàn thành",
+          "apis": [
+            {
+              "method": "POST",
+              "endpoint": "/orders",
+              "description": "Tạo order mới"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/orders",
+              "description": "Lấy danh sách orders"
+            },
+            {
+              "method": "PUT",
+              "endpoint": "/orders/{order_id}",
+              "description": "Cập nhật order"
+            },
+            {
+              "method": "DELETE",
+              "endpoint": "/orders/{order_id}",
+              "description": "Xóa order"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/orders/statistics",
+              "description": "Thống kê orders"
+            }
+          ]
+        },
+        "shipment_management": {
+          "name": "Quản lý Vận chuyển",
+          "description": "Quản lý vận đơn và tracking",
+          "apis": [
+            {
+              "method": "POST",
+              "endpoint": "/shipments",
+              "description": "Tạo shipment mới"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/shipments",
+              "description": "Lấy danh sách shipments"
+            },
+            {
+              "method": "PUT",
+              "endpoint": "/shipments/{shipment_id}/status",
+              "description": "Cập nhật status shipment"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/shipments/{shipment_id}/tracking",
+              "description": "Lấy thông tin tracking"
+            }
+          ]
+        }
+      }
+    },
+    "5_knowledge_management": {
+      "name": "Quản lý Kiến thức & Tài liệu",
+      "description": "Hệ thống xử lý tài liệu và tạo knowledge base cho bot",
+      "api_prefix": "/knowledge",
+      "customer_workflow": {
+        "step_1": "Upload tài liệu (PDF, DOC, DOCX, Excel, TXT)",
+        "step_2": "Hệ thống tự động xử lý và extract content",
+        "step_3": "Tạo knowledge chunks với embedding",
+        "step_4": "Tổ chức tài liệu theo folders và tags",
+        "step_5": "Bot sử dụng knowledge để trả lời câu hỏi",
+        "step_6": "Theo dõi conversation history và feedback"
+      },
+      "sub_features": {
+        "document_management": {
+          "name": "Quản lý Tài liệu",
+          "description": "Upload và xử lý các loại tài liệu",
+          "apis": [
+            {
+              "method": "POST",
+              "endpoint": "/documents",
+              "description": "Tạo document record"
+            },
+            {
+              "method": "POST",
+              "endpoint": "/documents/upload",
+              "description": "Upload file tài liệu"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/documents",
+              "description": "Lấy danh sách documents"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/documents/{document_id}",
+              "description": "Lấy chi tiết document"
+            },
+            {
+              "method": "PUT",
+              "endpoint": "/documents/{document_id}",
+              "description": "Cập nhật document"
+            },
+            {
+              "method": "POST",
+              "endpoint": "/documents/{document_id}/process",
+              "description": "Xử lý document để tạo knowledge chunks"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/documents/search",
+              "description": "Tìm kiếm documents"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/documents/supported-formats",
+              "description": "Lấy danh sách formats được hỗ trợ"
+            }
+          ]
+        },
+        "knowledge_chunks": {
+          "name": "Quản lý Knowledge Chunks",
+          "description": "Xử lý và quản lý các đoạn kiến thức",
+          "apis": [
+            {
+              "method": "POST",
+              "endpoint": "/knowledge-chunks",
+              "description": "Tạo knowledge chunk"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/documents/{document_id}/knowledge-chunks",
+              "description": "Lấy chunks của document"
+            },
+            {
+              "method": "POST",
+              "endpoint": "/knowledge-chunks/search",
+              "description": "Tìm kiếm knowledge chunks"
+            },
+            {
+              "method": "PUT",
+              "endpoint": "/knowledge-chunks/{chunk_id}/embedding",
+              "description": "Cập nhật embedding cho chunk"
+            }
+          ]
+        },
+        "rag_system": {
+          "name": "Hệ thống RAG",
+          "description": "Retrieval-Augmented Generation cho bot",
+          "apis": [
+            {
+              "method": "POST",
+              "endpoint": "/knowledge/search",
+              "description": "Tìm kiếm semantic trong knowledge base"
+            },
+            {
+              "method": "POST",
+              "endpoint": "/knowledge/answer",
+              "description": "Tạo câu trả lời từ knowledge base"
+            }
+          ]
+        },
+        "conversation_history": {
+          "name": "Lịch sử Hội thoại",
+          "description": "Lưu trữ và quản lý lịch sử chat",
+          "apis": [
+            {
+              "method": "POST",
+              "endpoint": "/histories",
+              "description": "Tạo history record"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/histories",
+              "description": "Lấy conversation histories"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/histories/sessions",
+              "description": "Lấy danh sách sessions"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/histories/search",
+              "description": "Tìm kiếm trong histories"
+            }
+          ]
+        },
+        "feedback_system": {
+          "name": "Hệ thống Feedback",
+          "description": "Thu thập và phân tích feedback từ users",
+          "apis": [
+            {
+              "method": "POST",
+              "endpoint": "/feedback",
+              "description": "Tạo feedback"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/feedback",
+              "description": "Lấy danh sách feedback"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/feedback/statistics",
+              "description": "Thống kê feedback"
+            }
+          ]
+        }
+      }
+    },
+    "6_system_management": {
+      "name": "Quản lý Hệ thống",
+      "description": "Quản lý notifications, settings, API keys và audit logs",
+      "api_prefix": "/system",
+      "customer_workflow": {
+        "step_1": "Cấu hình notification settings",
+        "step_2": "Tạo và quản lý API keys",
+        "step_3": "Thiết lập user settings và preferences",
+        "step_4": "Theo dõi audit logs và security",
+        "step_5": "Quản lý sessions và access control"
+      },
+      "sub_features": {
+        "notifications": {
+          "name": "Quản lý Thông báo",
+          "description": "Hệ thống thông báo đa kênh",
+          "apis": [
+            {
+              "method": "POST",
+              "endpoint": "/notifications",
+              "description": "Tạo notification"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/notifications",
+              "description": "Lấy notifications của user"
+            },
+            {
+              "method": "PUT",
+              "endpoint": "/notifications/{notification_id}/read",
+              "description": "Đánh dấu đã đọc"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/notifications/unread-count",
+              "description": "Đếm notifications chưa đọc"
+            }
+          ]
+        },
+        "user_settings": {
+          "name": "Cài đặt Người dùng",
+          "description": "Quản lý preferences và configurations",
+          "apis": [
+            {
+              "method": "POST",
+              "endpoint": "/user-settings",
+              "description": "Tạo setting"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/user-settings",
+              "description": "Lấy settings của user"
+            },
+            {
+              "method": "PUT",
+              "endpoint": "/user-settings/{setting_id}",
+              "description": "Cập nhật setting"
+            }
+          ]
+        },
+        "api_keys": {
+          "name": "Quản lý API Keys",
+          "description": "Tạo và quản lý API keys cho integration",
+          "apis": [
+            {
+              "method": "POST",
+              "endpoint": "/api-keys",
+              "description": "Tạo API key mới"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/api-keys",
+              "description": "Lấy danh sách API keys"
+            },
+            {
+              "method": "PUT",
+              "endpoint": "/api-keys/{key_id}/revoke",
+              "description": "Thu hồi API key"
+            }
+          ]
+        },
+        "sessions": {
+          "name": "Quản lý Sessions",
+          "description": "Theo dõi và quản lý user sessions",
+          "apis": [
+            {
+              "method": "GET",
+              "endpoint": "/sessions",
+              "description": "Lấy danh sách sessions"
+            },
+            {
+              "method": "DELETE",
+              "endpoint": "/sessions/{session_id}",
+              "description": "Xóa session"
+            }
+          ]
+        },
+        "audit_logs": {
+          "name": "Audit Logs",
+          "description": "Theo dõi hoạt động trong hệ thống",
+          "apis": [
+            {
+              "method": "GET",
+              "endpoint": "/audit-logs",
+              "description": "Lấy audit logs"
+            }
+          ]
+        }
+      }
+    },
+    "7_additional_features": {
+      "name": "Tính năng Bổ sung",
+      "description": "Usage tracking, automation, webhooks, templates và analytics",
+      "api_prefix": "/additional",
+      "customer_workflow": {
+        "step_1": "Theo dõi usage tokens và chi phí",
+        "step_2": "Thiết lập automation rules",
+        "step_3": "Cấu hình webhooks cho integration",
+        "step_4": "Tạo templates cho messages và emails",
+        "step_5": "Xem analytics và reports"
+      },
+      "sub_features": {
+        "usage_tracking": {
+          "name": "Theo dõi Sử dụng",
+          "description": "Monitor usage tokens và cost",
+          "apis": [
+            {
+              "method": "POST",
+              "endpoint": "/usage-tokens",
+              "description": "Ghi nhận token usage"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/usage-tokens",
+              "description": "Lấy usage history"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/usage-tokens/statistics",
+              "description": "Thống kê usage"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/usage-tokens/cost-summary",
+              "description": "Tổng hợp chi phí"
+            }
+          ]
+        },
+        "automation": {
+          "name": "Tự động hóa",
+          "description": "Tạo và quản lý automation rules",
+          "apis": [
+            {
+              "method": "POST",
+              "endpoint": "/automations",
+              "description": "Tạo automation"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/automations",
+              "description": "Lấy danh sách automations"
+            },
+            {
+              "method": "DELETE",
+              "endpoint": "/automations/{automation_id}",
+              "description": "Xóa automation"
+            },
+            {
+              "method": "POST",
+              "endpoint": "/automations/{automation_id}/copy",
+              "description": "Copy automation"
+            }
+          ]
+        },
+        "webhooks": {
+          "name": "Webhooks",
+          "description": "Integration với external systems",
+          "apis": [
+            {
+              "method": "POST",
+              "endpoint": "/webhooks",
+              "description": "Tạo webhook"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/webhooks",
+              "description": "Lấy danh sách webhooks"
+            },
+            {
+              "method": "POST",
+              "endpoint": "/webhooks/{webhook_id}/test",
+              "description": "Test webhook"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/webhooks/{webhook_id}/logs",
+              "description": "Lấy webhook logs"
+            }
+          ]
+        },
+        "templates": {
+          "name": "Templates",
+          "description": "Quản lý message và email templates",
+          "apis": [
+            {
+              "method": "POST",
+              "endpoint": "/templates",
+              "description": "Tạo template"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/templates",
+              "description": "Lấy danh sách templates"
+            },
+            {
+              "method": "PUT",
+              "endpoint": "/templates/{template_id}",
+              "description": "Cập nhật template"
+            }
+          ]
+        },
+        "analytics": {
+          "name": "Analytics & Reports",
+          "description": "Phân tích dữ liệu và báo cáo",
+          "apis": [
+            {
+              "method": "GET",
+              "endpoint": "/analytics",
+              "description": "Lấy analytics data"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/analytics/dashboard",
+              "description": "Dashboard analytics tổng quan"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/event-logs",
+              "description": "Lấy event logs"
+            }
+          ]
+        }
+      }
+    },
+    "8_super_admin_system": {
+      "name": "Hệ thống Super Admin",
+      "description": "Quản lý White Label partners và system monitoring",
+      "api_prefix": "/mekongai-internal-api",
+      "customer_workflow": {
+        "step_1": "Chỉ dành cho MekongAI SuperAdmin",
+        "step_2": "Tạo và quản lý White Label partners",
+        "step_3": "Monitor toàn bộ hệ thống",
+        "step_4": "Quản lý licenses và billing",
+        "step_5": "System analytics và reporting"
+      },
+      "sub_features": {
+        "partner_management": {
+          "name": "Quản lý Partners",
+          "description": "Tạo và quản lý White Label partners",
+          "apis": [
+            {
+              "method": "POST",
+              "endpoint": "/partners",
+              "description": "Tạo partner mới"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/partners",
+              "description": "Lấy danh sách partners"
+            },
+            {
+              "method": "PUT",
+              "endpoint": "/partners/{partner_id}",
+              "description": "Cập nhật partner"
+            }
+          ]
+        },
+        "system_monitoring": {
+          "name": "Monitor Hệ thống",
+          "description": "Theo dõi performance và usage",
+          "apis": [
+            {
+              "method": "GET",
+              "endpoint": "/system/overview",
+              "description": "Tổng quan hệ thống"
+            },
+            {
+              "method": "GET",
+              "endpoint": "/system/analytics",
+              "description": "System analytics"
+            }
+          ]
+        },
+        "data_sync": {
+          "name": "Đồng bộ Dữ liệu",
+          "description": "Sync data giữa partners",
+          "apis": [
+            {
+              "method": "POST",
+              "endpoint": "/sync/partner-data",
+              "description": "Sync partner data"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "detailed_workflows": {
+    "complete_customer_journey": {
+      "phase_1_onboarding": {
+        "name": "Đăng ký và Khởi tạo",
+        "steps": [
+          {
+            "step": 1,
+            "action": "Khách hàng truy cập website và chọn 'Đăng ký'",
+            "frontend": "Registration form với options Email/Password hoặc Google",
+            "api_call": "POST /api/v1/users",
+            "data_required": ["name", "email", "password", "method"]
+          },
+          {
+            "step": 2,
+            "action": "Thiết lập profile và upload avatar",
+            "frontend": "Profile setup page với drag-drop avatar upload",
+            "api_call": "PUT /api/v1/users/{user_id}",
+            "data_required": ["avatar_url", "additional_info"]
+          },
+          {
+            "step": 3,
+            "action": "Chọn gói dịch vụ",
+            "frontend": "Pricing page với feature comparison",
+            "api_call": "POST /api/v1/subscriptions",
+            "data_required": ["package_id", "payment_method"]
+          }
+        ]
+      },
+      "phase_2_setup": {
+        "name": "Thiết lập Cơ bản",
+        "steps": [
+          {
+            "step": 1,
+            "action": "Tạo Company profile",
+            "frontend": "Company setup wizard",
+            "api_call": "POST /api/v1/crm/companies",
+            "data_required": ["name", "industry", "address", "website"]
+          },
+          {
+            "step": 2,
+            "action": "Kết nối Social Media accounts",
+            "frontend": "Social platforms grid với OAuth buttons",
+            "api_call": "POST /api/v1/social-accounts",
+            "data_required": ["social_id", "access_token"]
+          },
+          {
+            "step": 3,
+            "action": "Upload tài liệu công ty",
+            "frontend": "Document upload với preview",
+            "api_call": "POST /api/v1/knowledge/documents/upload",
+            "data_required": ["file", "title", "category"]
+          }
+        ]
+      },
+      "phase_3_bot_creation": {
+        "name": "Tạo Bot",
+        "steps": [
+          {
+            "step": 1,
+            "action": "Vào 'Quản lý Bot' và nhấn 'Tạo Bot Mới'",
+            "frontend": "Bot creation wizard với progress indicator",
+            "api_call": "Chuẩn bị form creation",
+            "data_required": []
+          },
+          {
+            "step": 2,
+            "action": "Chọn/tạo Identity",
+            "frontend": "Identity selection với preview examples",
+            "api_call": "POST /api/v1/identities (nếu tạo mới)",
+            "data_required": ["name", "style", "conversation_example"]
+          },
+          {
+            "step": 3,
+            "action": "Chọn/tạo Procedure",
+            "frontend": "Workflow builder với drag-drop nodes",
+            "api_call": "POST /api/v1/procedures (nếu tạo mới)",
+            "data_required": ["name", "procedure_steps"]
+          },
+          {
+            "step": 4,
+            "action": "Cấu hình Bot",
+            "frontend": "Bot configuration form",
+            "api_call": "POST /api/v1/bots",
+            "data_required": [
+              "name",
+              "identity_id",
+              "procedure_id",
+              "role",
+              "target"
+            ]
+          },
+          {
+            "step": 5,
+            "action": "Kết nối với Social platforms",
+            "frontend": "Platform selection modal",
+            "api_call": "PUT /api/v1/bots/{bot_id}",
+            "data_required": ["connect"]
+          }
+        ]
+      },
+      "phase_4_crm_setup": {
+        "name": "Thiết lập CRM",
+        "steps": [
+          {
+            "step": 1,
+            "action": "Import/thêm Contacts",
+            "frontend": "Contact management với import options",
+            "api_call": "POST /api/v1/crm/contacts hoặc POST /api/v1/crm/contacts/import",
+            "data_required": ["name", "email", "phone", "type"]
+          },
+          {
+            "step": 2,
+            "action": "Tạo Product catalog",
+            "frontend": "Product management với image gallery",
+            "api_call": "POST /api/v1/crm/products",
+            "data_required": ["name", "sku", "pricing", "media"]
+          },
+          {
+            "step": 3,
+            "action": "Thiết lập Warehouses",
+            "frontend": "Warehouse setup với inventory tracking",
+            "api_call": "POST /api/v1/crm/warehouses",
+            "data_required": ["name", "address", "inventory"]
+          }
+        ]
+      },
+      "phase_5_operations": {
+        "name": "Vận hành",
+        "steps": [
+          {
+            "step": 1,
+            "action": "Bot nhận tin nhắn và tự động tạo Orders",
+            "frontend": "Order dashboard với real-time updates",
+            "api_call": "POST /api/v1/crm/orders (auto từ bot)",
+            "data_required": ["contact_id", "line_items", "total_price"]
+          },
+          {
+            "step": 2,
+            "action": "Xử lý và tạo Shipments",
+            "frontend": "Shipment management với tracking",
+            "api_call": "POST /api/v1/crm/shipments",
+            "data_required": ["order_id", "carrier", "tracking_number"]
+          },
+          {
+            "step": 3,
+            "action": "Monitor performance và analytics",
+            "frontend": "Dashboard với charts và metrics",
+            "api_call": "GET /api/v1/additional/analytics/dashboard",
+            "data_required": ["user_id", "date_range"]
+          }
+        ]
+      }
+    },
+    "bot_interaction_flow": {
+      "name": "Luồng Tương tác Bot",
+      "description": "Cách bot xử lý tin nhắn từ khách hàng",
+      "steps": [
+        {
+          "step": 1,
+          "event": "Khách hàng gửi tin nhắn trên Facebook/Instagram",
+          "bot_action": "Nhận webhook từ platform",
+          "api_call": "Webhook trigger → RAG system"
+        },
+        {
+          "step": 2,
+          "event": "Bot phân tích intent từ tin nhắn",
+          "bot_action": "Sử dụng Identity và Procedure để xác định response",
+          "api_call": "POST /api/v1/knowledge/answer"
+        },
+        {
+          "step": 3,
+          "event": "Tìm kiếm thông tin trong Knowledge base",
+          "bot_action": "Semantic search trong documents và product catalog",
+          "api_call": "POST /api/v1/knowledge/search"
+        },
+        {
+          "step": 4,
+          "event": "Tạo câu trả lời phù hợp",
+          "bot_action": "Generate response dựa trên context và personality",
+          "api_call": "Kết hợp RAG + Identity style"
+        },
+        {
+          "step": 5,
+          "event": "Lưu conversation history",
+          "bot_action": "Store để tracking và analytics",
+          "api_call": "POST /api/v1/knowledge/histories"
+        },
+        {
+          "step": 6,
+          "event": "Nếu cần tạo order",
+          "bot_action": "Extract order info và tạo order tự động",
+          "api_call": "POST /api/v1/crm/orders"
+        }
+      ]
+    },
+    "dashboard_usage_flow": {
+      "name": "Luồng Sử dụng Dashboard",
+      "description": "Cách khách hàng sử dụng dashboard hàng ngày",
+      "daily_tasks": [
+        {
+          "task": "Kiểm tra tổng quan",
+          "action": "Xem dashboard với metrics tổng quan",
+          "api_call": "GET /api/v1/additional/analytics/dashboard",
+          "metrics": ["bot_messages", "new_orders", "conversion_rate"]
+        },
+        {
+          "task": "Xem orders mới",
+          "action": "Check orders từ bot conversations",
+          "api_call": "GET /api/v1/crm/orders?status=new",
+          "frontend": "Orders table với filtering"
+        },
+        {
+          "task": "Xử lý shipments",
+          "action": "Update tracking numbers và status",
+          "api_call": "PUT /api/v1/crm/shipments/{id}/status",
+          "frontend": "Shipment tracking interface"
+        },
+        {
+          "task": "Review bot performance",
+          "action": "Xem conversation histories và feedback",
+          "api_call": "GET /api/v1/knowledge/histories",
+          "frontend": "Chat logs với filtering options"
+        },
+        {
+          "task": "Manage notifications",
+          "action": "Đọc và xử lý notifications",
+          "api_call": "GET /api/v1/system/notifications",
+          "frontend": "Notification center với categories"
+        }
+      ]
+    }
+  },
+  "api_specifications": {
+    "authentication": {
+      "method": "API Key hoặc JWT Token",
+      "header": "Authorization: Bearer {token}",
+      "super_admin": "X-Super-Admin-Key: {api_key}"
+    },
+    "response_format": {
+      "success": {
+        "success": true,
+        "data": "object hoặc array",
+        "pagination": "object (nếu có)"
+      },
+      "error": {
+        "success": false,
+        "error": "error message",
+        "code": "error_code"
+      }
+    },
+    "pagination": {
+      "params": ["skip", "limit"],
+      "default_limit": 50,
+      "max_limit": 500
+    },
+    "file_upload": {
+      "max_size": "50MB",
+      "supported_formats": ["PDF", "DOC", "DOCX", "Excel", "TXT", "images"],
+      "upload_endpoint": "/api/v1/knowledge/documents/upload"
+    }
+  },
+  "integration_examples": {
+    "frontend_examples": {
+      "user_registration": {
+        "component": "RegisterForm",
+        "api_call": "POST /api/v1/users",
+        "example_code": "const response = await fetch('/api/v1/users', { method: 'POST', body: JSON.stringify({name, email, password}) })"
+      },
+      "bot_creation": {
+        "component": "BotWizard",
+        "steps": [
+          "IdentitySelector",
+          "ProcedureBuilder",
+          "BotConfiguration",
+          "SocialConnection"
+        ],
+        "api_calls": [
+          "POST /api/v1/identities",
+          "POST /api/v1/procedures",
+          "POST /api/v1/bots"
+        ]
+      },
+      "dashboard": {
+        "components": [
+          "MetricsCards",
+          "AnalyticsCharts",
+          "RecentActivity",
+          "NotificationBell"
+        ],
+        "api_calls": [
+          "GET /api/v1/additional/analytics/dashboard",
+          "GET /api/v1/system/notifications"
+        ]
+      }
+    },
+    "mobile_integration": {
+      "push_notifications": "Firebase Cloud Messaging",
+      "api_endpoints": "Same REST APIs",
+      "offline_support": "Cache critical data locally"
+    }
+  },
+  "deployment_guide": {
+    "environment_setup": {
+      "development": {
+        "database": "MongoDB local",
+        "api_url": "http://localhost:8000",
+        "cors": "Allow all origins"
+      },
+      "production": {
+        "database": "MongoDB Atlas",
+        "api_url": "https://api.mekongai.net",
+        "cors": "Specific allowed origins"
+      }
+    },
+    "required_services": [
+      "MongoDB (Database)",
+      "Qdrant (Vector Database)",
+      "S3 Compatible Storage",
+      "Email Service (SMTP)",
+      "Social Media APIs (Facebook, Instagram, etc.)"
+    ]
+  },
+  "security_considerations": {
+    "data_protection": [
+      "API Key authentication",
+      "Rate limiting",
+      "Input validation",
+      "SQL injection prevention",
+      "XSS protection"
+    ],
+    "privacy": [
+      "GDPR compliance",
+      "Data encryption",
+      "Access logging",
+      "User consent management"
+    ]
+  }
+}
