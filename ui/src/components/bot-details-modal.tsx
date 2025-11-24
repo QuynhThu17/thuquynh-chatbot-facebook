@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { X, Eye, Rocket, FileText, Globe, Languages, BadgeCheck } from "lucide-react";
 import type { Bot } from "@/lib/api";
+import { EditBotModal } from "@/components/edit-bot-modal";
 
 interface BotDetailsModalProps {
   bot: Bot | null;
@@ -12,6 +14,7 @@ interface BotDetailsModalProps {
 
 export function BotDetailsModal({ bot, open, onClose }: BotDetailsModalProps) {
   if (!open || !bot) return null;
+  const [editOpen, setEditOpen] = useState(false);
 
   const bullets = (text?: string) => {
     if (!text) return [] as string[];
@@ -182,7 +185,7 @@ export function BotDetailsModal({ bot, open, onClose }: BotDetailsModalProps) {
 
             {/* Actions */}
             <div className="flex items-center justify-end gap-2 pt-2">
-              <Button variant="outline" className="bg-white">Chỉnh sửa cấu hình</Button>
+              <Button variant="outline" className="bg-white" onClick={() => setEditOpen(true)}>Chỉnh sửa cấu hình</Button>
               <Button className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2">
                 <Rocket className="h-4 w-4" />
                 Kiểm tra & Triển khai
@@ -190,6 +193,7 @@ export function BotDetailsModal({ bot, open, onClose }: BotDetailsModalProps) {
             </div>
           </div>
         </div>
+        <EditBotModal open={editOpen} onClose={() => setEditOpen(false)} bot={bot} onUpdated={() => {}} />
       </div>
     </div>
   );

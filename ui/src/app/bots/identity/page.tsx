@@ -15,10 +15,11 @@ import {
   Search,
   Trash2,
 } from "lucide-react";
-import { type Identity, getIdentities, copyIdentity } from "@/lib/api";
+import { type Identity, getIdentities, copyIdentity, deleteIdentity } from "@/lib/api";
 import { IdentityDetailsModal } from "@/components/identity-details-modal";
+import { CreateIdentityModal } from "@/components/create-identity-modal";
 
-function IdentityCard({ identity, onCopy, onView }: { identity: Identity; onCopy: (id: Identity["id"]) => Promise<void>; onView: (i: Identity) => void }) {
+function IdentityCard({ identity, onCopy, onView, onEdit, onDelete }: { identity: Identity; onCopy: (id: Identity["id"]) => Promise<void>; onView: (i: Identity) => void; onEdit: (i: Identity) => void; onDelete: (id: Identity["id"]) => Promise<void> }) {
   return (
     <Card className="flex flex-col bg-white text-black border border-gray-200">
       <CardHeader>
@@ -48,13 +49,13 @@ function IdentityCard({ identity, onCopy, onView }: { identity: Identity; onCopy
         <Button variant="ghost" size="icon">
           <AppWindow className="w-5 h-5" />
         </Button>
-        <Button variant="ghost" size="icon">
+        <Button variant="ghost" size="icon" onClick={() => onEdit(identity)} aria-label="Sửa danh tính">
           <Edit className="w-5 h-5" />
         </Button>
         <Button variant="ghost" size="icon" onClick={() => onCopy(identity.id)} aria-label="Sao chép danh tính">
           <Copy className="w-5 h-5" />
         </Button>
-        <Button variant="ghost" size="icon" className="text-red-600">
+        <Button variant="ghost" size="icon" className="text-red-600" onClick={() => onDelete(identity.id)} aria-label="Xóa danh tính">
           <Trash2 className="w-5 h-5" />
         </Button>
       </div>
@@ -69,6 +70,9 @@ export default function IdentityPage() {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [selected, setSelected] = useState<Identity | null>(null);
   const [open, setOpen] = useState<boolean>(false);
+  const [createOpen, setCreateOpen] = useState<boolean>(false);
+  const [editOpen, setEditOpen] = useState<boolean>(false);
+  const [editingIdentity, setEditingIdentity] = useState<Identity | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -164,7 +168,7 @@ export default function IdentityPage() {
           <Button variant="ghost" size="icon">
             <List className="w-5 h-5" />
           </Button>
-          <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+          <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={() => setCreateOpen(true)}>
             <Plus className="w-5 h-5 mr-2" />
             Tạo Danh tính
           </Button>
@@ -185,12 +189,31 @@ export default function IdentityPage() {
               identity={identity} 
               onCopy={onCopy}
               onView={onView}
+              onEdit={(i) => { setEditingIdentity(i); setEditOpen(true); }}
+              onDelete={async (id) => {
+                const res = await deleteIdentity(id);
+                if (res?.success !== false) {
+                  setIdentities((prev) => prev.filter((p) => p.id !== id));
+                }
+              }}
             />
           ))}
         </div>
       )}
 
       <IdentityDetailsModal identity={selected} open={open} onClose={() => setOpen(false)} />
+      <CreateIdentityModal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreated={(i) => setIdentities((prev) => [i, ...prev])}
+      />
+      <CreateIdentityModal
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        onCreated={(i) => setIdentities((prev) => prev.map((p) => (p.id === i.id ? i : p)))}
+        mode="edit"
+        initial={editingIdentity}
+      />
     </div>
   );
 }

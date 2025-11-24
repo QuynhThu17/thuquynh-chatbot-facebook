@@ -5,9 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getBots, type Bot } from "@/lib/api";
+import { getBots, type Bot, deleteBot } from "@/lib/api";
 import { Loader2, AlertCircle, Eye, Rocket, Trash2, Grid3x3, List } from "lucide-react";
 import { BotDetailsModal } from "@/components/bot-details-modal";
+import { DeployBotModal } from "@/components/deploy-bot-modal";
 
 export default function BotsPage() {
   const router = useRouter();
@@ -20,6 +21,8 @@ export default function BotsPage() {
   const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
   const [selectedBot, setSelectedBot] = useState<Bot | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [deployBot, setDeployBot] = useState<Bot | null>(null);
+  const [isDeployOpen, setIsDeployOpen] = useState(false);
 
   useEffect(() => {
     fetchBots();
@@ -235,11 +238,23 @@ export default function BotsPage() {
                 >
                   Kiến thức
                 </Button>
-                <Button size="sm" className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white">
+                <Button size="sm" className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white" onClick={() => { setDeployBot(bot); setIsDeployOpen(true); }}>
                   <Rocket className="h-4 w-4" />
                   Triển khai
                 </Button>
-                <Button variant="outline" size="sm" className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 bg-white">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 bg-white"
+                  onClick={async () => {
+                    const ok = typeof window !== "undefined" ? window.confirm("Xóa bot này?") : true;
+                    if (!ok) return;
+                    const res = await deleteBot(bot.id);
+                    if (res?.success !== false) {
+                      setBots((prev) => prev.filter((b) => b.id !== bot.id));
+                    }
+                  }}
+                >
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
@@ -250,6 +265,7 @@ export default function BotsPage() {
 
       {/* Details Modal */}
       <BotDetailsModal bot={selectedBot} open={isDetailsOpen} onClose={() => setIsDetailsOpen(false)} />
+      <DeployBotModal bot={deployBot} open={isDeployOpen} onClose={() => setIsDeployOpen(false)} />
     </div>
   );
 }

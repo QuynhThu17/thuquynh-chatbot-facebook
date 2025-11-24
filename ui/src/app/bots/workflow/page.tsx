@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { type Procedure, getProcedures, updateProcedure, deleteProcedure, copyProcedure } from "@/lib/api";
 import { WorkflowDetailsModal } from "@/components/workflow-details-modal";
+import { CreateProcedureModal } from "@/components/create-procedure-modal";
 function WorkflowCard({
   workflow,
   editing,
@@ -116,6 +117,7 @@ export default function WorkflowPage() {
   const [editing, setEditing] = useState<{ id: Procedure["id"] | null; title: string; description: string }>({ id: null, title: "", description: "" });
   const [selected, setSelected] = useState<Procedure | null>(null);
   const [open, setOpen] = useState<boolean>(false);
+  const [createOpen, setCreateOpen] = useState<boolean>(false);
 
   useEffect(() => {
     const load = async () => {
@@ -214,7 +216,7 @@ export default function WorkflowPage() {
           <Button variant="ghost" size="icon">
             <List className="w-5 h-5" />
           </Button>
-          <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+          <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={() => setCreateOpen(true)}>
             <Plus className="w-5 h-5 mr-2" />
             Tạo quy trình
           </Button>
@@ -242,6 +244,13 @@ export default function WorkflowPage() {
         </div>
       )}
       <WorkflowDetailsModal workflow={selected} open={open} onClose={() => setOpen(false)} />
+      <CreateProcedureModal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreated={(p) => {
+          setProcedures((prev) => [p, ...prev]);
+        }}
+      />
     </div>
   );
 }

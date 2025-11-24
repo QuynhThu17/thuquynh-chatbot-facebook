@@ -276,7 +276,26 @@ export async function getBots(params?: {
   const path = `/bots${queryString ? `?${queryString}` : ""}`;
   
   const res = await apiFetch(path, { method: "GET" });
-  return handle(res);
+  const raw = await handle<any>(res);
+  const rows: any[] = Array.isArray(raw?.data) ? raw.data : Array.isArray(raw) ? raw : [];
+  const data: Bot[] = rows.map((b: any) => ({
+    id: String(b?.id ?? b?._id ?? b?.bot_id ?? b?.uuid ?? ""),
+    name: b?.name ?? b?.title ?? "",
+    role: b?.role ?? b?.description ?? "",
+    target: b?.target ?? b?.goal ?? "",
+    mission: b?.mission ?? b?.task ?? "",
+    note: b?.note ?? b?.notes ?? undefined,
+    status: b?.status ?? b?.state ?? (b?.active ? "active" : undefined),
+    type: b?.type ?? b?.bot_type ?? undefined,
+    language_code: b?.language_code ?? b?.language ?? undefined,
+    identity_id: b?.identity_id ?? b?.identity?.id ?? b?.identity?._id ?? undefined,
+    procedure_id: b?.procedure_id ?? b?.workflow_id ?? b?.workflow?.id ?? b?.procedure?.id ?? undefined,
+    knowledge: b?.knowledge ?? b?.knowledge_docs ?? undefined,
+    connect: b?.connect ?? b?.connection ?? undefined,
+    created_at: b?.created_at,
+    updated_at: b?.updated_at,
+  }));
+  return { success: !!raw?.success, data, total: raw?.total ?? data.length, message: raw?.message };
 }
 
 // Knowledge & Documents API
@@ -448,6 +467,103 @@ export async function getSocialAccounts(social_id: string | number): Promise<{ s
   return { success: !!raw?.success, data, message: raw?.message };
 }
 
+export interface SocialPlatform {
+  id: string | number;
+  name: string;
+  active?: boolean;
+}
+
+export interface SocialPage {
+  id: string | number;
+  name: string;
+  status?: string;
+}
+
+export async function getSocials(): Promise<{ success: boolean; data: SocialPlatform[]; message?: string }> {
+  const res = await apiFetch(`/socials`, { method: "GET" });
+  const raw = await handle<any>(res);
+  const rows: any[] = Array.isArray(raw?.data) ? raw.data : Array.isArray(raw) ? raw : [];
+  const data: SocialPlatform[] = rows.map((s: any) => ({
+    id: s?.id ?? s?._id ?? s?.social_id ?? s?.uuid ?? s?.code ?? s?.key,
+    name: s?.name ?? s?.title ?? s?.label ?? s?.platform_name ?? "",
+    active: !!(s?.active ?? s?.enabled ?? s?.status === "active")
+  }));
+  return { success: !!raw?.success, data, message: raw?.message };
+}
+
+export async function getSocialPages(
+  social_id: string | number,
+  social_accounts_id: string | number
+): Promise<{ success: boolean; data: SocialPage[]; message?: string }> {
+  const query = new URLSearchParams({ social_accounts_id: String(social_accounts_id) }).toString();
+  const res = await apiFetch(`/socials/${social_id}/pages?${query}`, { method: "GET" });
+  const raw = await handle<any>(res);
+  const rows_source: any = raw?.data ?? raw;
+  const rows: any[] = Array.isArray(rows_source)
+    ? rows_source
+    : Array.isArray(rows_source?.pages)
+    ? rows_source.pages
+    : Array.isArray(rows_source?.social_pages)
+    ? rows_source.social_pages
+    : [];
+  const data: SocialPage[] = rows.map((p: any) => {
+    const pools = [p, p?.page, p?.social_page, p?.page?.page, p?.social_page?.page];
+    const pick = (keys: string[]): any => {
+      for (const obj of pools) {
+        for (const k of keys) {
+          const v = obj?.[k];
+          if (v !== undefined && v !== null && v !== "") return v;
+        }
+      }
+      for (const obj of pools) {
+        if (obj && typeof obj === "object") {
+          for (const k of Object.keys(obj)) {
+            if (/^id$|_id$|id$|page_id$|social_page_id$/i.test(k)) {
+              const v = (obj as any)[k];
+              if (v !== undefined && v !== null && v !== "") return v;
+            }
+          }
+        }
+      }
+      return undefined;
+    };
+    const pickName = (): string | undefined => {
+      const val = pick(["name", "title", "page_name", "social_page_name", "fb_page_name", "display_name"]);
+      if (typeof val === "string") return val;
+      return undefined;
+    };
+    const pickId = (): string | number | undefined => {
+      const val = pick(["id", "_id", "page_id", "social_page_id", "uuid"]);
+      return val as any;
+    };
+    const pickStatus = (): string | undefined => {
+      const val = pick(["status", "state"]);
+      if (typeof val === "string") return val;
+      return undefined;
+    };
+    const id = pickId();
+    const name = pickName() ?? (typeof id !== "undefined" ? String(id) : "");
+    const status = pickStatus();
+    return { id: id as any, name, status } as SocialPage;
+  });
+  return { success: !!raw?.success, data, message: raw?.message };
+}
+
+export async function connectBotToSocial(
+  bot_id: string | number,
+  payload: {
+    social_id: string | number;
+    social_page_id: string | number;
+  }
+): Promise<{ success: boolean; message?: string; data?: any }> {
+  const body = {
+    social_id: payload.social_id,
+    social_page_id: payload.social_page_id,
+  };
+  const res = await apiFetch(`/bots/${bot_id}/connection`, { method: "PUT", body: JSON.stringify(body) });
+  return handle(res);
+}
+
 // Identity Management API Functions
 export interface Identity {
   id: string | number;
@@ -588,6 +704,26 @@ export async function getProcedure(procedure_id: string | number): Promise<Proce
   return { success: !!raw?.success, data, message: raw?.message };
 }
 
+export async function createProcedure(payload: { title: string; description: string; type?: string }): Promise<ProcedureResponse> {
+  const body: any = {
+    name: payload.title,
+    procedure: payload.description,
+    type: payload.type ?? "custom",
+  };
+  const res = await apiFetch(`/procedures`, { method: "POST", body: JSON.stringify(body) });
+  const raw = await handle<any>(res);
+  const i = raw?.data ?? {};
+  const data: Procedure = {
+    id: i?.id ?? i?._id ?? i?.procedure_id ?? i?.uuid,
+    title: i?.title ?? i?.name ?? "",
+    description: i?.description ?? i?.procedure ?? "",
+    type: i?.type,
+    created_at: i?.created_at,
+    updated_at: i?.updated_at,
+  };
+  return { success: !!raw?.success, data, message: raw?.message };
+}
+
 export async function updateProcedure(
   procedure_id: string | number,
   data: Partial<Pick<Procedure, "title" | "description" | "type">>
@@ -631,4 +767,107 @@ export async function copyProcedure(procedure_id: string | number): Promise<Proc
     updated_at: i?.updated_at,
   };
   return { success: !!raw?.success, data, message: raw?.message };
+}
+
+export async function createIdentity(payload: {
+  title: string;
+  description: string;
+  style: string;
+  conversation_examples?: { user: string; you: string }[];
+}): Promise<IdentityResponse> {
+  const body: any = {
+    name: payload.title,
+    info: payload.description,
+    style: payload.style,
+    conversation_style: payload.style,
+    conversation_example: Array.isArray(payload.conversation_examples) ? payload.conversation_examples : [],
+  };
+  const res = await apiFetch(`/identities`, { method: "POST", body: JSON.stringify(body) });
+  const raw = await handle<any>(res);
+  const i = raw?.data ?? {};
+  const data: Identity = {
+    id: i?.id ?? i?._id ?? i?.identity_id ?? i?.uuid,
+    title: i?.title ?? i?.name ?? "",
+    description: i?.description ?? i?.info ?? i?.style ?? i?.conversation_style ?? "",
+    examples: Array.isArray(i?.conversation_example) ? i.conversation_example.length : i?.examples ?? 0,
+    created_at: i?.created_at,
+    updated_at: i?.updated_at,
+  };
+  return { success: !!raw?.success, data, message: raw?.message };
+}
+
+export async function updateIdentity(
+  identity_id: string | number,
+  data: Partial<{ title: string; description: string; style: string; conversation_examples: { user: string; you: string }[] }>
+): Promise<IdentityResponse> {
+  const body: any = {};
+  if (data.title !== undefined) body.name = data.title;
+  if (data.description !== undefined) body.info = data.description;
+  if (data.style !== undefined) {
+    body.style = data.style;
+    body.conversation_style = data.style;
+  }
+  if (data.conversation_examples !== undefined) body.conversation_example = data.conversation_examples;
+  const res = await apiFetch(`/identities/${identity_id}`, { method: "PUT", body: JSON.stringify(body) });
+  const raw = await handle<any>(res);
+  const i = raw?.data ?? {};
+  const mapped: Identity = {
+    id: i?.id ?? i?._id ?? i?.identity_id ?? i?.uuid,
+    title: i?.title ?? i?.name ?? "",
+    description: i?.description ?? i?.info ?? i?.style ?? i?.conversation_style ?? "",
+    examples: Array.isArray(i?.conversation_example) ? i.conversation_example.length : i?.examples ?? 0,
+    created_at: i?.created_at,
+    updated_at: i?.updated_at,
+  };
+  return { success: !!raw?.success, data: mapped, message: raw?.message };
+}
+
+export async function deleteIdentity(identity_id: string | number): Promise<{ success: boolean; message?: string }> {
+  const res = await apiFetch(`/identities/${identity_id}`, { method: "DELETE" });
+  return handle(res);
+}
+
+export async function updateBot(
+  bot_id: string | number,
+  data: Partial<Pick<Bot, "name" | "role" | "target" | "mission" | "note" | "type" | "language_code" | "identity_id" | "procedure_id" | "status" | "knowledge" | "connect">>
+): Promise<{ success: boolean; data?: Bot; message?: string }> {
+  const body: any = {};
+  if (data.name !== undefined) body.name = data.name;
+  if (data.language_code !== undefined) body.language_code = data.language_code;
+  if (data.identity_id !== undefined) body.identity_id = data.identity_id;
+  if (data.procedure_id !== undefined) body.procedure_id = data.procedure_id;
+  if (data.role !== undefined) body.role = data.role;
+  if (data.target !== undefined) body.target = data.target;
+  if (data.mission !== undefined) body.mission = data.mission;
+  if (data.note !== undefined) body.note = data.note;
+  if (data.type !== undefined) body.type = data.type;
+  if (data.status !== undefined) body.status = data.status;
+  if (data.knowledge !== undefined) body.knowledge = data.knowledge;
+  if (data.connect !== undefined) body.connect = data.connect;
+  const res = await apiFetch(`/bots/${bot_id}`, { method: "PUT", body: JSON.stringify(body) });
+  const raw = await handle<any>(res);
+  const i = raw?.data ?? {};
+  const mapped: Bot = {
+    id: i?.id ?? i?._id ?? i?.bot_id ?? i?.uuid,
+    name: i?.name ?? i?.title ?? "",
+    role: i?.role ?? i?.description ?? "",
+    target: i?.target ?? i?.goal ?? "",
+    mission: i?.mission ?? i?.task ?? "",
+    note: i?.note ?? i?.notes ?? undefined,
+    status: i?.status ?? i?.state ?? (i?.active ? "active" : undefined),
+    type: i?.type ?? i?.bot_type ?? undefined,
+    language_code: i?.language_code ?? i?.language ?? undefined,
+    identity_id: i?.identity_id ?? i?.identity?.id ?? i?.identity?._id ?? undefined,
+    procedure_id: i?.procedure_id ?? i?.workflow_id ?? i?.workflow?.id ?? i?.procedure?.id ?? undefined,
+    knowledge: i?.knowledge ?? i?.knowledge_docs ?? undefined,
+    connect: i?.connect ?? i?.connection ?? undefined,
+    created_at: i?.created_at,
+    updated_at: i?.updated_at,
+  };
+  return { success: !!raw?.success, data: mapped, message: raw?.message };
+}
+
+export async function deleteBot(bot_id: string | number): Promise<{ success: boolean; message?: string }> {
+  const res = await apiFetch(`/bots/${bot_id}`, { method: "DELETE" });
+  return handle(res);
 }
