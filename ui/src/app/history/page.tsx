@@ -4,7 +4,21 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getHistories, getHistorySessions, deleteHistorySession, getNotifications, markNotificationRead, markNotificationUnread, deleteNotification, getSocialPageById } from "@/lib/api";
+import { Loader2, AlertCircle, Search, MessageSquare, Bell, Reply, Trash2 } from "lucide-react";
+import Image from "next/image";
+import { 
+  getHistories, 
+  getHistorySessions, 
+  deleteHistorySession, 
+  getNotifications, 
+  markNotificationRead, 
+  markNotificationUnread, 
+  deleteNotification, 
+  getSocialPageById,
+  type HistoryRecord,
+  type SessionRecord,
+  type NotificationItem
+} from "@/lib/api";
 
 type Tab = "histories" | "notifications";
 
@@ -17,15 +31,17 @@ export default function HistoryPage() {
   const [pageFilter, setPageFilter] = useState<string | undefined>(undefined);
   const [botFilter, setBotFilter] = useState<string | undefined>(undefined);
 
-  const [histories, setHistories] = useState<any[]>([]);
-  const [sessions, setSessions] = useState<any[]>([]);
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const [histories, setHistories] = useState<HistoryRecord[]>([]);
+  const [sessions, setSessions] = useState<SessionRecord[]>([]);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
 
-  const [activeRecord, setActiveRecord] = useState<any | null>(null);
+  type ChatMessage = { id: string | number; direction?: string; text?: string; created_at?: string };
+  type PageInfo = { fb_page_avatar?: string; fb_page_name?: string; name?: string; title?: string };
+  const [activeRecord, setActiveRecord] = useState<HistoryRecord | ChatMessage | null>(null);
   const [activeSessionId, setActiveSessionId] = useState<string | number | null>(null);
-  const [pageInfo, setPageInfo] = useState<any | null>(null);
+  const [pageInfo, setPageInfo] = useState<PageInfo | null>(null);
   const [autoReply, setAutoReply] = useState<boolean>(true);
-  const [sessionFeed, setSessionFeed] = useState<any[]>([]);
+  const [sessionFeed, setSessionFeed] = useState<ChatMessage[]>([]);
   const [notifSearch, setNotifSearch] = useState("");
   const [detailLoading, setDetailLoading] = useState(false);
 
@@ -62,8 +78,9 @@ export default function HistoryPage() {
           const nRes = await getNotifications({ limit: 50 });
           setNotifications(nRes?.data || []);
         }
-      } catch (e: any) {
-        setError(e?.message || "Lỗi tải dữ liệu");
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : "Lỗi tải dữ liệu";
+        setError(msg);
       } finally {
         setLoading(false);
       }
@@ -71,7 +88,7 @@ export default function HistoryPage() {
     run();
   }, [tab, pageFilter, botFilter]);
 
-  const openChat = async (record: any) => {
+  const openChat = async (record: HistoryRecord) => {
     setActiveRecord(record);
     setActiveSessionId(record?.session_id ?? null);
     setDetailLoading(true);
@@ -81,17 +98,18 @@ export default function HistoryPage() {
         record?.social_page_id ? getSocialPageById("s_facebook", record.social_page_id) : Promise.resolve(null),
         getHistories({ session_id: String(record?.session_id || ""), limit: 100 })
       ]);
-      if (piRes) setPageInfo((piRes as any)?.data || null);
-      const raw = (mr?.data || []) as any[];
-      const expanded: any[] = [];
+      if (piRes) {
+        const piData = (piRes as { data?: unknown } | null)?.data as PageInfo | undefined;
+        setPageInfo(piData ?? null);
+      }
+      const raw = (mr?.data || []) as HistoryRecord[];
+      const expanded: ChatMessage[] = [];
       for (const it of raw) {
-        const created = it?.created_at ? new Date(it.created_at).getTime() : 0;
-        const updated = it?.updated_at ? new Date(it.updated_at).getTime() : created;
-        if (it?.query) expanded.push({ id: `${it.id}_q`, direction: "in", text: it.query, created_at: it?.created_at || it?.time || it?.timestamp });
-        if (it?.answer) expanded.push({ id: `${it.id}_a`, direction: "out", text: it.answer, created_at: it?.updated_at || it?.created_at || it?.time || it?.timestamp });
+        if (it?.query) expanded.push({ id: `${it.id}_q`, direction: "in", text: it.query, created_at: it?.created_at });
+        if (it?.answer) expanded.push({ id: `${it.id}_a`, direction: "out", text: it.answer, created_at: it?.updated_at || it?.created_at });
         if (!it?.query && !it?.answer) expanded.push({ id: it.id, direction: it.direction, text: it.text, created_at: it?.created_at });
       }
-      const msgs = expanded.slice().sort((a: any, b: any) => {
+      const msgs = expanded.slice().sort((a, b) => {
         const ta = a?.created_at ? new Date(a.created_at).getTime() : 0;
         const tb = b?.created_at ? new Date(b.created_at).getTime() : 0;
         return ta - tb;
@@ -108,14 +126,14 @@ export default function HistoryPage() {
       try {
         setDetailLoading(true);
         const mr = await getHistories({ session_id: String(activeSessionId || ""), limit: 100 });
-        const raw = (mr?.data || []) as any[];
-        const expanded: any[] = [];
+        const raw = (mr?.data || []) as HistoryRecord[];
+        const expanded: ChatMessage[] = [];
         for (const it of raw) {
-          if (it?.query) expanded.push({ id: `${it.id}_q`, direction: "in", text: it.query, created_at: it?.created_at || it?.time || it?.timestamp });
-          if (it?.answer) expanded.push({ id: `${it.id}_a`, direction: "out", text: it.answer, created_at: it?.updated_at || it?.created_at || it?.time || it?.timestamp });
+          if (it?.query) expanded.push({ id: `${it.id}_q`, direction: "in", text: it.query, created_at: it?.created_at });
+          if (it?.answer) expanded.push({ id: `${it.id}_a`, direction: "out", text: it.answer, created_at: it?.updated_at || it?.created_at });
           if (!it?.query && !it?.answer) expanded.push({ id: it.id, direction: it.direction, text: it.text, created_at: it?.created_at });
         }
-        const msgs = expanded.slice().sort((a: any, b: any) => {
+        const msgs = expanded.slice().sort((a, b) => {
           const ta = a?.created_at ? new Date(a.created_at).getTime() : 0;
           const tb = b?.created_at ? new Date(b.created_at).getTime() : 0;
           return ta - tb;
@@ -127,7 +145,7 @@ export default function HistoryPage() {
       }
     };
     loadBySession();
-  }, [activeSessionId]);
+  }, [activeSessionId, activeRecord]);
 
   const markRead = async (id: string | number, read: boolean) => {
     try {
@@ -151,14 +169,9 @@ export default function HistoryPage() {
     } catch {}
   };
 
-  const filteredHistories = histories.filter((h) => {
-    const t = (h?.text || "").toLowerCase();
-    const q = search.trim().toLowerCase();
-    if (!q) return true;
-    return t.includes(q);
-  });
-
   const sessionMessages = sessionFeed;
+
+  
 
   const conversationCount = new Set(histories.map((h) => String(h.session_id || ""))).size;
   const replyCount = histories.filter((h) => String(h.direction || "") === "out").length;
@@ -171,46 +184,136 @@ export default function HistoryPage() {
   });
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Lịch sử & Hộp thư</h1>
-        <p className="text-gray-500">Quản lý cuộc trò chuyện, phản hồi và thông báo</p>
-      </div>
+    <div className="min-h-screen from-slate-50 to-slate-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-8">
+          <div>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-black mb-2">Lịch sử & Hộp thư</h1>
+            <p className="text-gray-600">Quản lý cuộc trò chuyện, phản hồi và thông báo</p>
+          </div>
+        </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <Card className="bg-white text-gray-900 border">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Cuộc trò chuyện</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{conversationCount}</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-white text-gray-900 border">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Phản hồi</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{replyCount}</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-white text-gray-900 border">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Thông báo</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-3">
-              <div className="text-2xl font-bold">{notifications.length}</div>
-              <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-600">{unreadNotificationsCount} chưa đọc</span>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-700">Cuộc trò chuyện</CardTitle>
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-md">
+                <MessageSquare className="h-5 w-5 text-white" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-gray-900">{conversationCount}</div>
+              <p className="text-xs text-gray-500 mt-1">Phiên hội thoại</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-700">Phản hồi</CardTitle>
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center shadow-md">
+                <Reply className="h-5 w-5 text-white" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-gray-900">{replyCount}</div>
+              <p className="text-xs text-gray-500 mt-1">Tin nhắn trả lời</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-700">Thông báo</CardTitle>
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-md">
+                <Bell className="h-5 w-5 text-white" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-3">
+                <div className="text-3xl font-bold text-gray-900">{notifications.length}</div>
+                <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-600">{unreadNotificationsCount} chưa đọc</span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6 shadow-sm">
+          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
+            <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
+              <button
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                  tab === "histories" ? "bg-white text-blue-600 shadow-sm" : "text-gray-600 hover:text-gray-900"
+                }`}
+                onClick={() => setTab("histories")}
+              >
+                Cuộc trò chuyện
+              </button>
+              <button
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                  tab === "notifications" ? "bg-white text-blue-600 shadow-sm" : "text-gray-600 hover:text-gray-900"
+                }`}
+                onClick={() => setTab("notifications")}
+              >
+                Thông báo
+              </button>
             </div>
-          </CardContent>
-        </Card>
-      </div>
 
-      <div className="flex items-center gap-2 mb-6">
-        <Button variant="outline" className="bg-white" onClick={() => setTab("histories")}>Cuộc trò chuyện</Button>
-        <Button variant="outline" className="bg-white" onClick={() => setTab("notifications")}>Thông báo</Button>
-      </div>
+            {tab === "histories" && (
+              <div className="flex items-center gap-3">
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <Input
+                    placeholder="Tìm kiếm tin nhắn..."
+                    className="pl-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                </div>
+
+                <Select value={botFilter ?? undefined} onValueChange={(v) => setBotFilter(v === "__all__" ? undefined : v)}>
+                  <SelectTrigger className="w-full sm:w-[180px] border-gray-300">
+                    <SelectValue placeholder="Bot" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">Tất cả bot</SelectItem>
+                    {Array.from(new Set(histories.map((h) => String(h.bot_id || ""))).values())
+                      .filter((v) => v)
+                      .map((v) => (
+                        <SelectItem key={v} value={v}>{v}</SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={pageFilter ?? undefined} onValueChange={(v) => setPageFilter(v === "__all__" ? undefined : v)}>
+                  <SelectTrigger className="w-full sm:w-[180px] border-gray-300">
+                    <SelectValue placeholder="Trang" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">Tất cả trang</SelectItem>
+                    {Array.from(new Set(histories.map((h) => String(h.social_page_id || ""))).values())
+                      .filter((v) => v)
+                      .map((v) => (
+                        <SelectItem key={v} value={v}>{v}</SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {tab === "notifications" && (
+              <div className="flex items-center gap-3">
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <Input
+                    placeholder="Tìm kiếm thông báo..."
+                    className="pl-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    value={notifSearch}
+                    onChange={(e) => setNotifSearch(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
 
       {tab === "histories" && (
         <div>
@@ -249,18 +352,40 @@ export default function HistoryPage() {
           </div>
 
           {loading && (
-            <div className="text-sm text-gray-600">Đang tải dữ liệu...</div>
+            <div className="flex flex-col justify-center items-center py-10">
+              <Loader2 className="h-10 w-10 animate-spin text-blue-500 mb-3" />
+              <span className="text-gray-600 font-medium">Đang tải dữ liệu...</span>
+            </div>
           )}
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm mb-4">{error}</div>
+            <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-red-700 font-medium">{error}</p>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex-shrink-0"
+                onClick={() => setError(null)}
+              >
+                Đóng
+              </Button>
+            </div>
           )}
 
-          <div className="rounded-lg border bg-white">
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
             <div className="flex">
               <div className="w-full md:w-96 border-r">
                 <div className="p-4 flex items-center gap-3">
                   <div className="relative w-full">
-                    <Input placeholder="Tìm kiếm trang, session ID, tin nhắn..." value={search} onChange={(e) => setSearch(e.target.value)} />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <Input 
+                      placeholder="Tìm kiếm trang, session ID, tin nhắn..." 
+                      className="pl-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                      value={search} 
+                      onChange={(e) => setSearch(e.target.value)} 
+                    />
                   </div>
                 </div>
                 <div className="px-4 pb-4 flex items-center gap-3">
@@ -289,20 +414,29 @@ export default function HistoryPage() {
                     const latest = msgs[msgs.length - 1];
                     const active = String(activeSessionId || "") === String(s.id);
                     return (
-                      <div key={String(s.id)} className={`px-4 py-3 border-t cursor-pointer ${active ? "bg-blue-50" : "bg-white hover:bg-gray-50"}`} onClick={() => { if (latest) openChat(latest); else setActiveSessionId(String(s.id)); }}>
+                      <div key={String(s.id)} className={`px-4 py-3 border border-gray-200 rounded-xl mx-4 mb-3 cursor-pointer transition-all duration-200 ${active ? "bg-blue-50 border-blue-300 shadow-md" : "bg-white hover:bg-gray-50 hover:border-blue-300 hover:shadow-md"}`} onClick={() => { if (latest) openChat(latest); else setActiveSessionId(String(s.id)); }}>
                         <div className="flex items-center justify-between">
                           <div className="font-medium truncate">{latest?.text || String(s.id)}</div>
                           <div className="text-xs text-gray-500">{formatRelativeTime(latest?.created_at || s.last_activity || "")}</div>
                         </div>
                         <div className="mt-1 text-xs text-gray-600 truncate">{latest ? `Page: ${String(latest.social_page_id || "")} • Bot: ${String(latest.bot_id || "")}` : ""}</div>
                         <div className="mt-2 flex items-center justify-end gap-2">
-                          <Button variant="outline" size="sm" className="bg-white" onClick={(e) => { e.stopPropagation(); removeSession(s.id); }}>Xóa</Button>
+                          <Button variant="outline" size="sm" className="bg-white flex items-center gap-2 hover:bg-red-50 hover:text-red-600 hover:border-red-300" onClick={(e) => { e.stopPropagation(); removeSession(s.id); }}>
+                            <Trash2 className="w-4 h-4" />
+                            Xóa
+                          </Button>
                         </div>
                       </div>
                     );
                   })}
                   {sessions.length === 0 && (
-                    <div className="p-4 text-sm text-gray-600">Không có phiên</div>
+                    <div className="p-12 text-center">
+                      <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                        <MessageSquare className="w-10 h-10 text-gray-400" />
+                      </div>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">Chưa có phiên nào</h3>
+                      <p className="text-gray-500">Khi có hội thoại, phiên sẽ xuất hiện tại đây</p>
+                    </div>
                   )}
                 </div>
               </div>
@@ -315,10 +449,10 @@ export default function HistoryPage() {
                     <div className="p-4 border-b flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         {pageInfo?.fb_page_avatar && (
-                          <img src={pageInfo.fb_page_avatar} alt="avatar" className="w-9 h-9 rounded-full object-cover border" />
+                          <Image src={pageInfo.fb_page_avatar} alt="avatar" width={36} height={36} className="rounded-full object-cover border" />
                         )}
                         <div>
-                          <div className="font-semibold">{pageInfo?.fb_page_name || pageInfo?.name || pageInfo?.title || String(activeRecord?.social_page_id || activeSessionId || "Chi tiết phiên")}</div>
+                          <div className="font-semibold">{pageInfo?.fb_page_name || pageInfo?.name || pageInfo?.title || String(activeSessionId || "Chi tiết phiên")}</div>
                           <div className="text-xs text-gray-600">{activeRecord ? `Cập nhật: ${formatRelativeTime(activeRecord.created_at || "")}` : ""}</div>
                         </div>
                       </div>
@@ -330,14 +464,17 @@ export default function HistoryPage() {
                           </button>
                         </div>
                         <div className="text-xs text-gray-600">Tổng số tin nhắn: {sessionMessages.length}</div>
-                        {activeRecord && (
-                          <Button variant="outline" size="sm" className="bg-white" onClick={() => removeSession(activeRecord.session_id)}>Xóa phiên</Button>
+                        {activeSessionId && (
+                          <Button variant="outline" size="sm" className="bg-white" onClick={() => removeSession(activeSessionId)}>Xóa phiên</Button>
                         )}
                       </div>
                     </div>
                     <div className="flex-1 overflow-y-auto p-4 space-y-4">
                       {detailLoading && (
-                        <div className="text-sm text-gray-500">Đang tải phiên...</div>
+                        <div className="flex items-center gap-2 text-sm text-gray-500">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Đang tải phiên...
+                        </div>
                       )}
                       {sessionMessages.map((m) => (
                         <div key={String(m.id)} className={`flex ${m.direction === "out" ? "justify-end" : "justify-start"}`}>
@@ -366,12 +503,28 @@ export default function HistoryPage() {
             <Button variant="outline" className="bg-white">Lọc</Button>
           </div>
           {loading && (
-            <div className="text-sm text-gray-600">Đang tải dữ liệu...</div>
+            <div className="flex flex-col justify-center items-center py-10">
+              <Loader2 className="h-10 w-10 animate-spin text-blue-500 mb-3" />
+              <span className="text-gray-600 font-medium">Đang tải dữ liệu...</span>
+            </div>
           )}
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm mb-4">{error}</div>
+            <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-red-700 font-medium">{error}</p>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex-shrink-0"
+                onClick={() => setError(null)}
+              >
+                Đóng
+              </Button>
+            </div>
           )}
-          <div className="rounded-lg border bg-white">
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
             <div className="grid grid-cols-12 gap-2 px-4 py-3 border-b text-xs text-gray-600">
               <div className="col-span-2">Notifications ID</div>
               <div className="col-span-5">Nội dung</div>
@@ -402,7 +555,13 @@ export default function HistoryPage() {
               </div>
             ))}
             {filteredNotifications.length === 0 && (
-              <div className="px-4 py-8 text-center text-sm text-gray-600">Không có thông báo</div>
+              <div className="p-12 text-center">
+                <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                  <Bell className="w-10 h-10 text-gray-400" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">Chưa có thông báo</h3>
+                <p className="text-gray-500">Thông báo mới sẽ xuất hiện tại đây</p>
+              </div>
             )}
           </div>
         </div>
@@ -413,6 +572,7 @@ export default function HistoryPage() {
           {JSON.stringify(pageInfo)}
         </div>
       )}
+      </div>
     </div>
   );
 }

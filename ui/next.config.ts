@@ -19,6 +19,16 @@ const nextConfig: NextConfig = {
         hostname: "*.s3.us-east-1.amazonaws.com",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "*.fbcdn.net",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "scontent-arn2-1.xx.fbcdn.net",
+        pathname: "/**",
+      },
     ],
   },
 };
