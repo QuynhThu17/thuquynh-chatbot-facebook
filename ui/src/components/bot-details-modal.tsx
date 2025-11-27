@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { X, Eye, Rocket, FileText, Globe, Languages, BadgeCheck } from "lucide-react";
-import type { Bot } from "@/lib/api";
+import { X, Eye, Rocket, FileText, Globe, Languages, BadgeCheck, Trash2 } from "lucide-react";
+import type { Bot, KnowledgeDocument } from "@/lib/api";
+import { getBotKnowledge, getSocialPageById, removeBotKnowledge } from "@/lib/api";
 import { EditBotModal } from "@/components/edit-bot-modal";
 
 interface BotDetailsModalProps {
@@ -13,8 +14,9 @@ interface BotDetailsModalProps {
 }
 
 export function BotDetailsModal({ bot, open, onClose }: BotDetailsModalProps) {
-  if (!open || !bot) return null;
   const [editOpen, setEditOpen] = useState(false);
+  const [knowledgeDocs, setKnowledgeDocs] = useState<KnowledgeDocument[]>([]);
+  const [connectedPages, setConnectedPages] = useState<Array<{ id: string | number; name: string }>>([]);
 
   const bullets = (text?: string) => {
     if (!text) return [] as string[];
@@ -24,9 +26,53 @@ export function BotDetailsModal({ bot, open, onClose }: BotDetailsModalProps) {
       .filter(Boolean);
   };
 
-  const missionLines = bullets(bot.mission);
-  const roleLines = bullets(bot.role);
-  const targetLines = bullets(bot.target);
+  const missionLines = bullets(bot?.mission);
+  const roleLines = bullets(bot?.role);
+  const targetLines = bullets(bot?.target);
+
+  useEffect(() => {
+    if (!open || !bot) return;
+    const run = async () => {
+      try {
+        const k = await getBotKnowledge(bot.id);
+        const docs = Array.isArray((k as any)?.data?.documents) ? (k as any).data.documents : [];
+        setKnowledgeDocs(docs as any);
+      } catch {}
+      try {
+        const con = bot.connect;
+        let items: any[] = [];
+        if (Array.isArray(con)) items = con;
+        else if (typeof con === "string") {
+          try {
+            const parsed = JSON.parse(con);
+            if (Array.isArray(parsed)) items = parsed;
+          } catch {}
+        }
+        const list: Array<{ id: string | number; name: string }> = [];
+        const tasks: Array<Promise<any>> = [];
+        const keys: Array<string | number> = [];
+        for (const it of items) {
+          if (it?.social_id === "s_facebook" && (it?.fb_page_id || it?.social_page_id)) {
+            const pid = it?.fb_page_id || it?.social_page_id;
+            keys.push(pid);
+            tasks.push(getSocialPageById("s_facebook", pid));
+          }
+        }
+        if (tasks.length) {
+          const results = await Promise.all(tasks.map((t) => t.catch(() => null)));
+          for (let i = 0; i < results.length; i++) {
+            const r = results[i];
+            const data = r?.data || {};
+            list.push({ id: keys[i], name: data?.fb_page_name || data?.name || items[i]?.fb_page_name || String(keys[i]) });
+          }
+        }
+        setConnectedPages(list);
+      } catch {}
+    };
+    run();
+  }, [open, bot?.id]);
+
+  if (!open || !bot) return null;
 
   return (
     <div className="fixed inset-0 z-50">
@@ -152,15 +198,20 @@ export function BotDetailsModal({ bot, open, onClose }: BotDetailsModalProps) {
             {/* Knowledge Docs */}
             <div className="space-y-2">
               <div className="text-sm font-medium text-gray-500">Tài liệu kiến thức</div>
-              <div className="rounded-lg border p-4 text-sm text-gray-800">
-                {Array.isArray((bot as any).knowledge_docs) && (bot as any).knowledge_docs.length > 0 ? (
-                  <ul className="list-disc pl-5 space-y-1">
-                    {((bot as any).knowledge_docs as string[]).map((d, i) => (
-                      <li key={`doc-${i}`}>{d}</li>
+              <div className="rounded-lg border p-4">
+                {knowledgeDocs.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {knowledgeDocs.map((d, i) => (
+                      <span key={`doc-${i}`} className="inline-flex items-center gap-2 rounded-full border px-3 py-1 bg-gray-50 text-sm text-gray-800">
+                        <FileText className="w-3.5 h-3.5" /> {d.title || String(d.id)}
+                        <button className="ml-1 text-red-600" onClick={async () => { try { await removeBotKnowledge(bot.id, d.id); const k = await getBotKnowledge(bot.id); const docs = Array.isArray((k as any)?.data?.documents) ? (k as any).data.documents : []; setKnowledgeDocs(docs as any); } catch {} }}>
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </span>
                     ))}
-                  </ul>
+                  </div>
                 ) : (
-                  <div>Chưa có tài liệu kiến thức nào được chỉ định.</div>
+                  <div className="text-sm text-gray-800">Chưa có tài liệu kiến thức nào được chỉ định.</div>
                 )}
               </div>
             </div>
@@ -168,17 +219,17 @@ export function BotDetailsModal({ bot, open, onClose }: BotDetailsModalProps) {
             {/* Connected pages */}
             <div className="space-y-2">
               <div className="text-sm font-medium text-gray-500">Kết nối trang</div>
-              <div className="rounded-lg border p-4 text-sm text-gray-800">
-                {Array.isArray((bot as any).connected_pages) && (bot as any).connected_pages.length > 0 ? (
+              <div className="rounded-lg border p-4">
+                {connectedPages.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
-                    {((bot as any).connected_pages as string[]).map((p, i) => (
-                      <span key={`page-${i}`} className="inline-flex items-center gap-2 rounded-full border px-3 py-1 bg-gray-50">
-                        <Globe className="w-3.5 h-3.5" /> {p}
+                    {connectedPages.map((p, i) => (
+                      <span key={`page-${i}`} className="inline-flex items-center gap-2 rounded-full border px-3 py-1 bg-gray-50 text-sm text-gray-800">
+                        <Globe className="w-3.5 h-3.5" /> {p.name}
                       </span>
                     ))}
                   </div>
                 ) : (
-                  <div>Chưa có trang được kết nối.</div>
+                  <div className="text-sm text-gray-800">Chưa có trang được kết nối.</div>
                 )}
               </div>
             </div>

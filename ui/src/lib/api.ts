@@ -106,7 +106,8 @@ export async function refreshToken(): Promise<{ success: boolean; message?: stri
     saveTokens({
       access_token: result.data.access_token,
       token_type: "Bearer",
-      refresh_token: refreshToken
+      refresh_token: refreshToken,
+      persist: true
     });
   }
   
@@ -147,6 +148,16 @@ export async function uploadAvatar(file: File): Promise<{ success: boolean; data
   const fd = new FormData();
   fd.append("file", file);
   const res = await apiFetch("/avatar/upload-avatar", { method: "POST", body: fd });
+  return handle(res);
+}
+
+export async function updateAvatar(avatar_url: string): Promise<{ success: boolean; data?: any; message?: string }> {
+  const res = await apiFetch("/avatar/update-avatar", { method: "PUT", body: JSON.stringify({ avatar_url }) });
+  return handle(res);
+}
+
+export async function deleteAvatar(): Promise<{ success: boolean; message?: string }> {
+  const res = await apiFetch("/avatar/delete-avatar", { method: "DELETE" });
   return handle(res);
 }
 
@@ -195,10 +206,6 @@ async function apiFetch(path: string, options: RequestInit = {}) {
         
         return retryResponse;
       } catch (refreshError) {
-        // If refresh fails, redirect to login
-        if (typeof window !== 'undefined') {
-          window.location.href = '/auth/login';
-        }
         throw refreshError;
       }
     }
@@ -310,7 +317,20 @@ export interface KnowledgeDocument {
   updated_at?: string;
 }
 
+export interface BotKnowledgeData {
+  bot_id?: string;
+  bot_name?: string;
+  knowledge_count?: number;
+  documents: KnowledgeDocument[];
+}
+
 export interface KnowledgeListResponse {
+  success: boolean;
+  data: BotKnowledgeData;
+  message?: string;
+}
+
+export interface DocumentsListResponse {
   success: boolean;
   data: KnowledgeDocument[];
   total?: number;
@@ -326,64 +346,30 @@ export interface KnowledgeResponse {
 export async function getBotKnowledge(bot_id: string | number): Promise<KnowledgeListResponse> {
   const res = await apiFetch(`/bots/${bot_id}/knowledge`, { method: "GET" });
   const raw = await handle<any>(res);
-  const rows: any[] = Array.isArray(raw?.data) ? raw.data : [];
-  const data: KnowledgeDocument[] = rows.map((d: any) => ({
-    id: d?.id ?? d?._id ?? d?.document_id ?? d?.uuid,
-    title: d?.title ?? d?.name ?? d?.file_name ?? d?.filename ?? "",
+  const rows: any[] = Array.isArray(raw?.data?.documents) ? raw.data.documents : [];
+  const documents: KnowledgeDocument[] = rows.map((d: any) => ({
+    id: d?.document_id ?? d?.id ?? d?._id ?? d?.uuid,
+    title: d?.document_name ?? d?.title ?? d?.name ?? d?.file_name ?? d?.filename ?? "",
     file_name: d?.file_name ?? d?.filename ?? undefined,
     segments: d?.segments ?? d?.chunks ?? undefined,
     images: d?.images ?? d?.image_count ?? undefined,
     status: d?.status ?? d?.state ?? undefined,
-    created_at: d?.created_at,
+    created_at: d?.created_at ?? d?.create_at,
     updated_at: d?.updated_at,
   }));
-  return { success: !!raw?.success, data, total: raw?.total ?? data.length, message: raw?.message };
+  return { success: !!raw?.success, data: { bot_id: raw?.data?.bot_id, bot_name: raw?.data?.bot_name, knowledge_count: raw?.data?.knowledge_count ?? documents.length, documents }, message: raw?.message };
 }
 
-export async function updateBotKnowledge(
-  bot_id: string | number,
-  document_id: string | number,
-  update: Partial<Pick<KnowledgeDocument, "title" | "status">>
-): Promise<KnowledgeResponse> {
-  const payload: any = { document_id };
-  if (update.title !== undefined) payload.title = update.title;
-  if (update.status !== undefined) payload.status = update.status;
+export async function setBotKnowledge(bot_id: string | number, document_ids: Array<string | number>): Promise<{ success: boolean; data?: any; message?: string }> {
+  const payload = { knowledge: document_ids.map((x) => String(x)) };
   const res = await apiFetch(`/bots/${bot_id}/knowledge`, { method: "PUT", body: JSON.stringify(payload) });
-  const raw = await handle<any>(res);
-  const d = raw?.data ?? {};
-  const mapped: KnowledgeDocument = {
-    id: d?.id ?? d?._id ?? d?.document_id ?? d?.uuid,
-    title: d?.title ?? d?.name ?? d?.file_name ?? d?.filename ?? "",
-    file_name: d?.file_name ?? d?.filename ?? undefined,
-    segments: d?.segments ?? d?.chunks ?? undefined,
-    images: d?.images ?? d?.image_count ?? undefined,
-    status: d?.status ?? d?.state ?? undefined,
-    created_at: d?.created_at,
-    updated_at: d?.updated_at,
-  };
-  return { success: !!raw?.success, data: mapped, message: raw?.message };
+  return handle(res);
 }
 
-export async function addBotKnowledge(
-  bot_id: string | number,
-  document_id: string | number,
-  extra?: Record<string, any>
-): Promise<KnowledgeResponse> {
-  const payload: any = { document_id, ...(extra || {}) };
+export async function addBotKnowledge(bot_id: string | number, document_ids: Array<string | number>): Promise<{ success: boolean; data?: any; message?: string }> {
+  const payload = { knowledge: document_ids.map((x) => String(x)) };
   const res = await apiFetch(`/bots/${bot_id}/knowledge/add`, { method: "POST", body: JSON.stringify(payload) });
-  const raw = await handle<any>(res);
-  const d = raw?.data ?? {};
-  const mapped: KnowledgeDocument = {
-    id: d?.id ?? d?._id ?? d?.document_id ?? d?.uuid,
-    title: d?.title ?? d?.name ?? d?.file_name ?? d?.filename ?? "",
-    file_name: d?.file_name ?? d?.filename ?? undefined,
-    segments: d?.segments ?? d?.chunks ?? undefined,
-    images: d?.images ?? d?.image_count ?? undefined,
-    status: d?.status ?? d?.state ?? undefined,
-    created_at: d?.created_at,
-    updated_at: d?.updated_at,
-  };
-  return { success: !!raw?.success, data: mapped, message: raw?.message };
+  return handle(res);
 }
 
 export async function removeBotKnowledge(bot_id: string | number, document_id: string | number): Promise<{ success: boolean; message?: string }> {
@@ -392,7 +378,7 @@ export async function removeBotKnowledge(bot_id: string | number, document_id: s
 }
 
 // Documents API
-export async function getDocuments(): Promise<KnowledgeListResponse> {
+export async function getDocuments(): Promise<DocumentsListResponse> {
   const res = await apiFetch(`/documents`, { method: "GET" });
   const raw = await handle<any>(res);
   const rows: any[] = Array.isArray(raw?.data) ? raw.data : [];
@@ -409,11 +395,13 @@ export async function getDocuments(): Promise<KnowledgeListResponse> {
   return { success: !!raw?.success, data, total: raw?.total ?? data.length, message: raw?.message };
 }
 
-export async function uploadDocument(payload: { file: File; title?: string; company?: string | number }): Promise<KnowledgeResponse> {
+export async function uploadDocument(payload: { file: File; title?: string; company_id?: string; process_images?: boolean; parser_engine?: string }): Promise<KnowledgeResponse> {
   const fd = new FormData();
   fd.append("file", payload.file);
-  if (payload.title !== undefined) fd.append("title", String(payload.title));
-  if (payload.company !== undefined) fd.append("company", String(payload.company));
+  if (payload.title !== undefined) fd.append("name", String(payload.title));
+  if (payload.company_id) fd.append("company_id", String(payload.company_id));
+  fd.append("process_images", String(!!payload.process_images));
+  fd.append("parser_engine", payload.parser_engine ? String(payload.parser_engine) : "ragflow");
   const res = await apiFetch(`/documents/upload`, { method: "POST", body: fd });
   const raw = await handle<any>(res);
   const d = raw?.data ?? {};
@@ -421,8 +409,8 @@ export async function uploadDocument(payload: { file: File; title?: string; comp
     id: d?.id ?? d?._id ?? d?.document_id ?? d?.uuid,
     title: d?.title ?? d?.name ?? d?.file_name ?? d?.filename ?? "",
     file_name: d?.file_name ?? d?.filename ?? undefined,
-    segments: d?.segments ?? d?.chunks ?? undefined,
-    images: d?.images ?? d?.image_count ?? undefined,
+    segments: d?.segments ?? d?.chunks ?? d?.total_chunks ?? undefined,
+    images: d?.images ?? d?.image_count ?? d?.total_images ?? undefined,
     status: d?.status ?? d?.state ?? undefined,
     created_at: d?.created_at,
     updated_at: d?.updated_at,
@@ -477,6 +465,7 @@ export interface SocialPage {
   id: string | number;
   name: string;
   status?: string;
+  is_connected?: boolean;
 }
 
 export async function getSocials(): Promise<{ success: boolean; data: SocialPlatform[]; message?: string }> {
@@ -541,10 +530,21 @@ export async function getSocialPages(
       if (typeof val === "string") return val;
       return undefined;
     };
+    const pickConnected = (): boolean | undefined => {
+      const val = pick(["is_connected", "connected"]);
+      if (typeof val === "boolean") return val;
+      if (typeof val === "string") {
+        const v = val.toLowerCase();
+        if (/^(true|1|connected|connect)$/i.test(v)) return true;
+        if (/^(false|0|disconnected|disconnect)$/i.test(v)) return false;
+      }
+      return undefined;
+    };
     const id = pickId();
     const name = pickName() ?? (typeof id !== "undefined" ? String(id) : "");
     const status = pickStatus();
-    return { id: id as any, name, status } as SocialPage;
+    const is_connected = pickConnected() ?? false;
+    return { id: id as any, name, status, is_connected } as SocialPage;
   });
   return { success: !!raw?.success, data, message: raw?.message };
 }
@@ -561,6 +561,22 @@ export async function connectBotToSocial(
     social_page_id: payload.social_page_id,
   };
   const res = await apiFetch(`/bots/${bot_id}/connection`, { method: "PUT", body: JSON.stringify(body) });
+  return handle(res);
+}
+
+export async function disconnectBotFromSocial(
+  bot_id: string | number,
+  social_page_id: string | number
+): Promise<{ success: boolean; message?: string; data?: any }> {
+  const res = await apiFetch(`/bots/${bot_id}/connections/${social_page_id}`, { method: "DELETE" });
+  return handle(res);
+}
+
+export async function getSocialPageById(
+  social_id: string | number,
+  social_page_id: string | number
+): Promise<{ success: boolean; data?: any; message?: string }> {
+  const res = await apiFetch(`/socials/${social_id}/pages/${social_page_id}`, { method: "GET" });
   return handle(res);
 }
 
@@ -869,5 +885,193 @@ export async function updateBot(
 
 export async function deleteBot(bot_id: string | number): Promise<{ success: boolean; message?: string }> {
   const res = await apiFetch(`/bots/${bot_id}`, { method: "DELETE" });
+  return handle(res);
+}
+
+export async function activateBot(bot_id: string | number): Promise<{ success: boolean; data?: any; message?: string }> {
+  const res = await apiFetch(`/bots/${bot_id}/activate`, { method: "PUT" });
+  return handle(res);
+}
+
+export async function deactivateBot(bot_id: string | number): Promise<{ success: boolean; data?: any; message?: string }> {
+  const res = await apiFetch(`/bots/${bot_id}/deactivate`, { method: "PUT" });
+  return handle(res);
+}
+
+export interface HistoryRecord {
+  id: string | number;
+  session_id?: string;
+  customer_id?: string | number;
+  bot_id?: string | number;
+  social_id?: string;
+  social_page_id?: string | number;
+  direction?: string;
+  text?: string;
+  query?: string;
+  answer?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface HistoriesResponse {
+  success: boolean;
+  data: HistoryRecord[];
+  total?: number;
+  message?: string;
+}
+
+export async function getHistories(params?: {
+  session_id?: string;
+  customer_id?: string | number;
+  bot_id?: string | number;
+  social_id?: string;
+  social_page_id?: string | number;
+  skip?: number;
+  limit?: number;
+}): Promise<HistoriesResponse> {
+  const q = new URLSearchParams();
+  if (params?.session_id) q.append("session_id", String(params.session_id));
+  if (params?.customer_id !== undefined) q.append("customer_id", String(params.customer_id));
+  if (params?.bot_id !== undefined) q.append("bot_id", String(params.bot_id));
+  if (params?.social_id) q.append("social_id", String(params.social_id));
+  if (params?.social_page_id !== undefined) q.append("social_page_id", String(params.social_page_id));
+  if (params?.skip !== undefined) q.append("skip", String(params.skip));
+  if (params?.limit !== undefined) q.append("limit", String(params.limit));
+  const path = `/crm/histories${q.toString() ? `?${q.toString()}` : ""}`;
+  const res = await apiFetch(path, { method: "GET" });
+  const raw = await handle<any>(res);
+  const rows: any[] = Array.isArray(raw?.data) ? raw.data : Array.isArray(raw) ? raw : [];
+  const data: HistoryRecord[] = rows.map((h: any) => ({
+    id: h?.id ?? h?._id ?? h?.history_id ?? h?.uuid,
+    session_id: h?.session_id ?? h?.session?.id ?? h?.session?._id,
+    customer_id: h?.customer_id ?? h?.customer?.id ?? h?.customer?._id,
+    bot_id: h?.bot_id ?? h?.bot?.id ?? h?.bot?._id,
+    social_id: h?.social_id ?? h?.platform ?? h?.social?.id,
+    social_page_id: h?.social_page_id ?? h?.page_id ?? h?.social_page?.id ?? h?.social_page?._id,
+    direction: h?.direction ?? h?.dir ?? (typeof h?.sender !== "undefined" ? (h.sender === "user" ? "in" : "out") : (typeof h?.answer !== "undefined" ? "out" : (typeof h?.query !== "undefined" ? "in" : undefined))),
+    text: h?.text ?? h?.message ?? h?.content ?? h?.prompt ?? h?.answer ?? h?.query,
+    query: h?.query,
+    answer: h?.answer,
+    created_at: h?.created_at ?? h?.timestamp ?? h?.time,
+    updated_at: h?.updated_at,
+  }));
+  return { success: !!raw?.success, data, total: raw?.total ?? data.length, message: raw?.message };
+}
+
+export interface SessionRecord {
+  id: string | number;
+  customer_id?: string | number;
+  social_page_id?: string | number;
+  count?: number;
+  last_activity?: string;
+}
+
+export async function getHistorySessions(params?: { skip?: number; limit?: number }): Promise<{ success: boolean; data: SessionRecord[]; total?: number; message?: string }> {
+  const q = new URLSearchParams();
+  if (params?.skip !== undefined) q.append("skip", String(params.skip));
+  if (params?.limit !== undefined) q.append("limit", String(params.limit));
+  const res = await apiFetch(`/crm/histories/sessions${q.toString() ? `?${q.toString()}` : ""}`, { method: "GET" });
+  const raw = await handle<any>(res);
+  const rows: any[] = Array.isArray(raw?.data) ? raw.data : Array.isArray(raw) ? raw : [];
+  const data: SessionRecord[] = rows.map((s: any) => ({
+    id: s?.id ?? s?._id ?? s?.session_id ?? s?.uuid,
+    customer_id: s?.customer_id ?? s?.customer?.id ?? s?.customer?._id,
+    social_page_id: s?.social_page_id ?? s?.page_id ?? s?.social_page?.id ?? s?.social_page?._id,
+    count: s?.count ?? s?.messages_count ?? s?.total,
+    last_activity: s?.last_activity ?? s?.updated_at ?? s?.created_at,
+  }));
+  return { success: !!raw?.success, data, total: raw?.total ?? data.length, message: raw?.message };
+}
+
+export async function deleteHistorySession(session_id: string | number): Promise<{ success: boolean; message?: string }> {
+  const res = await apiFetch(`/crm/histories/sessions/${session_id}`, { method: "DELETE" });
+  return handle(res);
+}
+
+export interface NotificationItem {
+  id: string | number;
+  title?: string;
+  content?: string;
+  category?: string;
+  type?: string;
+  action?: string;
+  priority?: number;
+  is_read?: boolean;
+  created_at?: string;
+}
+
+export async function getNotifications(params?: {
+  is_read?: boolean;
+  category?: string;
+  type?: string;
+  action?: string;
+  priority?: number;
+  skip?: number;
+  limit?: number;
+}): Promise<{ success: boolean; data: NotificationItem[]; total?: number; message?: string }> {
+  const q = new URLSearchParams();
+  if (typeof params?.is_read === "boolean") q.append("is_read", String(params.is_read));
+  if (params?.category) q.append("category", params.category);
+  if (params?.type) q.append("type", params.type);
+  if (params?.action) q.append("action", params.action);
+  if (typeof params?.priority === "number") q.append("priority", String(params.priority));
+  if (params?.skip !== undefined) q.append("skip", String(params.skip));
+  if (params?.limit !== undefined) q.append("limit", String(params.limit));
+  const res = await apiFetch(`/notifications${q.toString() ? `?${q.toString()}` : ""}`, { method: "GET" });
+  const raw = await handle<any>(res);
+  const rows_source: any = raw?.data ?? raw;
+  const rows: any[] = Array.isArray(rows_source) ? rows_source : Array.isArray(rows_source?.notifications) ? rows_source.notifications : [];
+  const data: NotificationItem[] = rows.map((n: any) => ({
+    id: n?.id ?? n?._id ?? n?.notification_id ?? n?.uuid,
+    title: n?.title ?? n?.name ?? n?.subject ?? n?.message_title,
+    content: n?.content ?? n?.message ?? n?.body,
+    category: n?.category ?? n?.group,
+    type: n?.type ?? n?.kind,
+    action: n?.action ?? n?.event,
+    priority: typeof n?.priority === "number" ? n.priority : undefined,
+    is_read: !!(n?.is_read ?? n?.read),
+    created_at: n?.created_at ?? n?.timestamp,
+  }));
+  return { success: !!raw?.success, data, total: raw?.total ?? data.length, message: raw?.message };
+}
+
+export async function markNotificationRead(notification_id: string | number): Promise<{ success: boolean; message?: string }> {
+  const res = await apiFetch(`/notifications/${notification_id}/read`, { method: "PUT" });
+  return handle(res);
+}
+
+export async function markNotificationUnread(notification_id: string | number): Promise<{ success: boolean; message?: string }> {
+  const res = await apiFetch(`/notifications/${notification_id}/unread`, { method: "PUT" });
+  return handle(res);
+}
+
+export async function markAllNotificationsRead(): Promise<{ success: boolean; message?: string }> {
+  const res = await apiFetch(`/notifications/mark-all-read`, { method: "PUT" });
+  return handle(res);
+}
+
+export async function getUnreadNotificationCount(): Promise<{ success: boolean; data?: number; message?: string }> {
+  const res = await apiFetch(`/notifications/unread-count`, { method: "GET" });
+  const raw = await handle<any>(res);
+  const val = typeof raw?.data === "number" ? raw.data : typeof raw === "number" ? raw : raw?.count ?? raw?.unread ?? undefined;
+  return { success: !!raw?.success, data: typeof val === "number" ? val : undefined, message: raw?.message };
+}
+
+export async function getUnreadCountByCategory(): Promise<{ success: boolean; data?: Record<string, number>; message?: string }> {
+  const res = await apiFetch(`/notifications/unread-count-by-category`, { method: "GET" });
+  const raw = await handle<any>(res);
+  const map = raw?.data ?? raw;
+  const data: Record<string, number> = {};
+  if (map && typeof map === "object") {
+    for (const k of Object.keys(map)) {
+      const v = (map as any)[k];
+      if (typeof v === "number") data[k] = v;
+    }
+  }
+  return { success: !!raw?.success, data, message: raw?.message };
+}
+
+export async function deleteNotification(notification_id: string | number): Promise<{ success: boolean; message?: string }> {
+  const res = await apiFetch(`/notifications/${notification_id}`, { method: "DELETE" });
   return handle(res);
 }

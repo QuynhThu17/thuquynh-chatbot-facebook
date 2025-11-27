@@ -297,19 +297,19 @@ class AuthService:
         """Send reset password email with a modern HTML template."""
         try:
             reset_link = f"https://api-mesale.mekongai.com/api/v1/auth/reset-password?token={reset_token}"
-            subject = "Reset Your Password - MekongAI"
+            subject = "Reset Your Password - HueAI"
             text_body = (
                 f"Hi {name},\n\n"
-                "We received a request to reset the password for your MekongAI account.\n\n"
+                "We received a request to reset the password for your HueAI account.\n\n"
                 f"Reset link: {reset_link}\n\n"
                 "The link expires in 1 hour. If you didn't request this, you can ignore the email.\n\n"
                 "Best regards,\n"
-                "MekongAI Team"
+                "HueAI Team"
             )
 
             content_html = f"""
 <p class="greeting">Hi <span class="highlight">{name}</span>,</p>
-<p>We received a request to reset the password for your MekongAI account.</p>
+<p>We received a request to reset the password for your HueAI account.</p>
 <p>If this was you, use the button below to set a new password right away.</p>
 <div class="action">
     <a class="button" href="{reset_link}">Reset password</a>

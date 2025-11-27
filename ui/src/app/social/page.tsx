@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { Share2, Zap, UserPlus, Settings, CheckCircle, Loader2, X, ArrowLeft } from 'lucide-react';
 import { connectSocial, getSocialAccounts, type SocialAccount } from '@/lib/api';
+import { SocialPagesModal } from '@/components/social-pages-modal';
 
 const SocialPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -13,6 +14,8 @@ const SocialPage = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [accounts, setAccounts] = useState<SocialAccount[]>([]);
   const [showAccountsView, setShowAccountsView] = useState(false);
+  const [pagesOpen, setPagesOpen] = useState(false);
+  const [activeAccountId, setActiveAccountId] = useState<string | null>(null);
 
   const SOCIAL_ID = "s_facebook";
 
@@ -160,11 +163,7 @@ const SocialPage = () => {
                     </div>
                   </div>
                   <div className="flex space-x-2">
-                    <button onClick={() => {
-                      if (typeof window !== "undefined") {
-                        window.open(`/social/facebook/pages`, "_blank");
-                      }
-                    }} className="border px-3 py-1 rounded">Trang</button>
+                    <button onClick={() => { setActiveAccountId(String(a.id)); setPagesOpen(true); }} className="border px-3 py-1 rounded">Trang</button>
                     <button onClick={loadAccounts} className="border px-3 py-1 rounded">Làm mới</button>
                   </div>
                 </div>
@@ -191,7 +190,7 @@ const SocialPage = () => {
               </button>
             </div>
 
-            <p className="text-gray-600 mt-2">Cho phép MekongAI truy cập tài khoản Facebook của bạn</p>
+            <p className="text-gray-600 mt-2">Cho phép HueAI truy cập tài khoản Facebook của bạn</p>
 
             <div className="mt-4 space-y-3">
               <div className="flex items-center justify-between bg-green-50 p-3 rounded-lg">
@@ -237,6 +236,10 @@ const SocialPage = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {pagesOpen && activeAccountId && (
+        <SocialPagesModal open={pagesOpen} onClose={() => setPagesOpen(false)} socialId={SOCIAL_ID} accountId={activeAccountId} />
       )}
     </div>
   );

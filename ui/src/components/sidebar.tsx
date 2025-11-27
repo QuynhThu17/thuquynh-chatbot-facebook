@@ -136,7 +136,7 @@ export function Sidebar() {
           Cài đặt
         </Link>
         
-        <Link href="/help" className={getLinkClassName("/help")}>
+        <Link href="#" className={getLinkClassName("/help")}>
           <HelpIcon />
           Trợ giúp & Hỗ trợ
         </Link>

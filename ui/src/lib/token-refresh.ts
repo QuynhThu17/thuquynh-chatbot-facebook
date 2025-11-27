@@ -4,7 +4,25 @@ import {
   saveTokens, 
   clearTokens 
 } from "./auth-storage";
-import { refreshToken } from "./api";
+
+const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:1975/api/v1").replace(/\/$/, "");
+async function requestRefresh(refresh_token: string): Promise<{ success: boolean; data?: { access_token: string }; message?: string }> {
+  const res = await fetch(`${API_BASE}/auth/refresh`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ refresh_token }),
+    credentials: "include",
+  });
+  const ct = res.headers.get("content-type") || "";
+  const isJson = ct.toLowerCase().includes("application/json");
+  const bodyText = await res.text();
+  const parsed = isJson && bodyText ? JSON.parse(bodyText) : bodyText ? { message: bodyText } : {};
+  if (!res.ok) {
+    const msg = (parsed as any)?.detail || (parsed as any)?.message || `HTTP ${res.status}`;
+    throw new Error(msg);
+  }
+  return parsed as any;
+}
 
 class TokenRefreshManager {
   private isRefreshing = false;
@@ -31,14 +49,15 @@ class TokenRefreshManager {
     }
 
     try {
-      const response = await refreshToken();
+      const response = await requestRefresh(refreshTokenValue);
       
       if (response.success && response.data?.access_token) {
         const newAccessToken = response.data.access_token;
         saveTokens({
           access_token: newAccessToken,
           token_type: "Bearer",
-          refresh_token: refreshTokenValue
+          refresh_token: refreshTokenValue,
+          persist: true
         });
 
         // Process queued requests

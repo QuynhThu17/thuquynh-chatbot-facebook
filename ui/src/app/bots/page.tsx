@@ -5,8 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getBots, type Bot, deleteBot } from "@/lib/api";
-import { Loader2, AlertCircle, Eye, Rocket, Trash2, Grid3x3, List } from "lucide-react";
+import { getBots, type Bot, deleteBot, activateBot, deactivateBot } from "@/lib/api";
+import { Loader2, AlertCircle, Eye, Rocket, Trash2, Grid3x3, List, Play, Square } from "lucide-react";
 import { BotDetailsModal } from "@/components/bot-details-modal";
 import { DeployBotModal } from "@/components/deploy-bot-modal";
 
@@ -243,6 +243,24 @@ export default function BotsPage() {
                   Triển khai
                 </Button>
                 <Button
+                  size="sm"
+                  className={`flex items-center gap-2 ${String(bot.status || "").toLowerCase() === "active" ? "bg-red-600 hover:bg-red-700 text-white" : "bg-green-600 hover:bg-green-700 text-white"}`}
+                  onClick={async () => {
+                    const active = String(bot.status || "").toLowerCase() === "active";
+                    try {
+                      const res = active ? await deactivateBot(bot.id) : await activateBot(bot.id);
+                      if (res?.success !== false) {
+                        setBots((prev) => prev.map((b) => (b.id === bot.id ? { ...b, status: active ? "inactive" : "active" } : b)));
+                      }
+                    } catch (err: any) {
+                      setError(err?.message || (active ? "Không thể tắt bot" : "Không thể bật bot"));
+                    }
+                  }}
+                >
+                  {String(bot.status || "").toLowerCase() === "active" ? <Square className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                  {String(bot.status || "").toLowerCase() === "active" ? "Tắt" : "Bật"}
+                </Button>
+                <Button
                   variant="outline"
                   size="sm"
                   className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 bg-white"
@@ -264,7 +282,9 @@ export default function BotsPage() {
       )}
 
       {/* Details Modal */}
-      <BotDetailsModal bot={selectedBot} open={isDetailsOpen} onClose={() => setIsDetailsOpen(false)} />
+      {isDetailsOpen && selectedBot && (
+        <BotDetailsModal bot={selectedBot} open={true} onClose={() => setIsDetailsOpen(false)} />
+      )}
       <DeployBotModal bot={deployBot} open={isDeployOpen} onClose={() => setIsDeployOpen(false)} />
     </div>
   );

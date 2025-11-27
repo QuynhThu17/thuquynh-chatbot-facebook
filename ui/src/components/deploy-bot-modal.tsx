@@ -14,7 +14,7 @@ import {
   type SocialPlatform,
   type SocialPage,
 } from "@/lib/api";
-import { Rocket, Globe, UserPlus, CheckCircle, Loader2, X } from "lucide-react";
+import { Rocket, Globe, UserPlus, Loader2, X } from "lucide-react";
 
 type Step = 0 | 1 | 2 | 3 | 4 | 5;
 
@@ -55,8 +55,9 @@ export function DeployBotModal({ bot, open, onClose }: { bot: Bot | null; open: 
         setLoading(true);
         const res = await getSocials();
         setPlatforms(res.data || []);
-      } catch (err: any) {
-        setError(err.message || "Không thể tải dữ liệu mạng xã hội");
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Không thể tải dữ liệu mạng xã hội";
+        setError(msg);
       } finally {
         setLoading(false);
       }
@@ -88,8 +89,9 @@ export function DeployBotModal({ bot, open, onClose }: { bot: Bot | null; open: 
         const accRes = await getSocialAccounts(selectedPlatform);
         setAccounts(accRes.data || []);
         setStep(2);
-      } catch (err: any) {
-        setError(err.message || "Không thể tải tài khoản");
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Không thể tải tài khoản";
+        setError(msg);
       } finally {
         setLoading(false);
       }
@@ -101,8 +103,9 @@ export function DeployBotModal({ bot, open, onClose }: { bot: Bot | null; open: 
         const pageRes = await getSocialPages(selectedPlatform, selectedAccount);
         setPages(pageRes.data || []);
         setStep(3);
-      } catch (err: any) {
-        setError(err.message || "Không thể tải danh sách trang");
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Không thể tải danh sách trang";
+        setError(msg);
       } finally {
         setLoading(false);
       }
@@ -123,10 +126,11 @@ export function DeployBotModal({ bot, open, onClose }: { bot: Bot | null; open: 
             social_id: String(selectedPlatform),
             social_page_id: String(selectedPage),
           });
-          setDeployed(Boolean((res as any)?.success ?? true));
+          setDeployed(Boolean(res?.success ?? true));
           setStep(5);
-        } catch (err: any) {
-          setError(err.message || "Không thể triển khai bot");
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : "Không thể triển khai bot";
+          setError(msg);
         } finally {
           setDeploying(false);
         }
@@ -148,14 +152,16 @@ export function DeployBotModal({ bot, open, onClose }: { bot: Bot | null; open: 
     try {
       setLoading(true);
       const res = await connectSocial(selectedPlatform);
-      const authUrl = (res as any)?.data?.auth_url;
+      const authData = (res as { data?: { auth_url?: string } }).data;
+      const authUrl = authData?.auth_url;
       if (authUrl && typeof window !== "undefined") {
         window.open(authUrl, "_blank", "noopener,noreferrer");
       }
       const accRes = await getSocialAccounts(selectedPlatform);
       setAccounts(accRes.data || []);
-    } catch (err: any) {
-      setError(err.message || "Không thể kết nối mạng xã hội");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Không thể kết nối mạng xã hội";
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -286,12 +292,12 @@ export function DeployBotModal({ bot, open, onClose }: { bot: Bot | null; open: 
                 <div className="text-sm font-semibold mb-2">Chọn trang</div>
                 <div className="space-y-2">
                     {pages.map((p, idx) => (
-                    <label key={String(p.id)} className={`flex items-center justify-between border rounded-lg p-4 cursor-pointer ${String(selectedPage) === String(p.id) ? "ring-2 ring-blue-600" : ""}`}>
+                    <label key={String(p.id)} className={`flex items-center justify-between border rounded-lg p-4 cursor-pointer ${p.is_connected ? "bg-green-50" : ""} ${String(selectedPage) === String(p.id) ? "ring-2 ring-blue-600" : ""}`}>
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full bg-gray-200" />
                         <div>
                           <div className="font-medium">{idx + 1}. {p.name || String(p.id) || ""}</div>
-                          <div className="text-xs text-gray-500">{p.status || "Chưa kết nối"}</div>
+                          <div className="text-xs text-gray-500">{p.is_connected ? "Đã kết nối" : "Chưa kết nối"}</div>
                         </div>
                       </div>
                       <input type="radio" checked={String(selectedPage) === String(p.id)} onChange={() => { setSelectedPage(String(p.id)); setSelectedPageName(p.name || String(p.id) || ""); }} />

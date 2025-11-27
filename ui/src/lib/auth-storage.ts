@@ -9,7 +9,8 @@ const REFRESH_KEY = "mkai_refresh_token";
 const TYPE_KEY = "mkai_token_type";
 
 export function saveTokens(tokens: Tokens & { persist?: boolean }) {
-  const storage = tokens.persist ? localStorage : sessionStorage;
+  if (typeof window === "undefined") return;
+  const storage = tokens.persist ? window.localStorage : window.sessionStorage;
   try {
     storage.setItem(ACCESS_KEY, tokens.access_token);
     if (tokens.refresh_token) storage.setItem(REFRESH_KEY, tokens.refresh_token);
@@ -18,20 +19,23 @@ export function saveTokens(tokens: Tokens & { persist?: boolean }) {
 }
 
 export function getAccessToken(): string | null {
-  return sessionStorage.getItem(ACCESS_KEY) || localStorage.getItem(ACCESS_KEY);
+  if (typeof window === "undefined") return null;
+  return window.sessionStorage.getItem(ACCESS_KEY) || window.localStorage.getItem(ACCESS_KEY);
 }
 
 export function getRefreshToken(): string | null {
-  return sessionStorage.getItem(REFRESH_KEY) || localStorage.getItem(REFRESH_KEY);
+  if (typeof window === "undefined") return null;
+  return window.sessionStorage.getItem(REFRESH_KEY) || window.localStorage.getItem(REFRESH_KEY);
 }
 
 export function clearTokens() {
+  if (typeof window === "undefined") return;
   try {
-    sessionStorage.removeItem(ACCESS_KEY);
-    sessionStorage.removeItem(REFRESH_KEY);
-    sessionStorage.removeItem(TYPE_KEY);
-    localStorage.removeItem(ACCESS_KEY);
-    localStorage.removeItem(REFRESH_KEY);
-    localStorage.removeItem(TYPE_KEY);
+    window.sessionStorage.removeItem(ACCESS_KEY);
+    window.sessionStorage.removeItem(REFRESH_KEY);
+    window.sessionStorage.removeItem(TYPE_KEY);
+    window.localStorage.removeItem(ACCESS_KEY);
+    window.localStorage.removeItem(REFRESH_KEY);
+    window.localStorage.removeItem(TYPE_KEY);
   } catch {}
 }
