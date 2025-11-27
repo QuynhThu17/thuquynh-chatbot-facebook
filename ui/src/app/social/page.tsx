@@ -175,7 +175,7 @@ const SocialPage = () => {
             <Button
               variant="outline"
               size="sm"
-              className="flex-shrink-0"
+              className="flex-shrink-0 bg-white text-gray-700 border border-gray-300 hover:bg-gray-10"
               onClick={() => setErrorMsg(null)}
             >
               Đóng

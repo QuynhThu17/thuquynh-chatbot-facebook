@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Upload, Loader2 } from "lucide-react";
+import { Upload, Loader2, AlertCircle } from "lucide-react";
 import {
   getCurrentUser,
   getAvatarInfo,
@@ -45,7 +45,8 @@ export default function SettingsPage() {
     (async () => {
       try {
         const u = await getCurrentUser();
-        const d = (u as any)?.data || {};
+        type GetUserResponse = { data?: { name?: string; email?: string } };
+        const d = (u as GetUserResponse)?.data || {};
 
         if (mounted) {
           setName(d.name || "");
@@ -55,11 +56,9 @@ export default function SettingsPage() {
 
       try {
         const a = await getAvatarInfo();
-        const raw =
-          (a as any)?.data?.avatar_url ||
-          (a as any)?.data?.url ||
-          (a as any)?.avatar_url ||
-          (a as any)?.url;
+        type AvatarInfoResponse = { data?: { avatar_url?: string; url?: string }, avatar_url?: string; url?: string };
+        const ai = a as AvatarInfoResponse;
+        const raw = ai?.data?.avatar_url || ai?.data?.url || ai?.avatar_url || ai?.url;
 
         if (mounted && raw) {
           const finalUrl = normalizeUrl(raw);
@@ -104,12 +103,9 @@ export default function SettingsPage() {
 
     try {
       const res = await uploadAvatar(file);
-
-      const raw =
-        (res as any)?.data?.avatar_url ||
-        (res as any)?.data?.url ||
-        (res as any)?.avatar_url ||
-        (res as any)?.url;
+      type UploadAvatarResponse = { data?: { avatar_url?: string; url?: string }, avatar_url?: string; url?: string };
+      const ur = res as UploadAvatarResponse;
+      const raw = ur?.data?.avatar_url || ur?.data?.url || ur?.avatar_url || ur?.url;
 
       if (!raw) {
         setError("API không trả về URL hợp lệ");
@@ -120,8 +116,9 @@ export default function SettingsPage() {
 
       // Preview ngay lập tức
       setPendingUrl(addTs(finalUrl));
-    } catch (err: any) {
-      setError(err?.message || "Tải ảnh thất bại");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Tải ảnh thất bại";
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -151,8 +148,9 @@ export default function SettingsPage() {
         setAvatarUrl(addTs(clean));
         setPendingUrl(undefined);
       }
-    } catch (err: any) {
-      setError(err?.message || "Cập nhật avatar thất bại");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Cập nhật avatar thất bại";
+      setError(msg);
     } finally {
       setSaving(false);
     }
@@ -166,19 +164,39 @@ export default function SettingsPage() {
   // ===================================================
 
   return (
-    <div className="space-y-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Cài đặt</h1>
-        <p className="text-gray-500">Quản lý cài đặt và avatar</p>
-      </div>
+    <div className="min-h-screen from-slate-50 to-slate-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-8">
+          <div>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">Cài đặt</h1>
+            <p className="text-gray-600">Quản lý cài đặt tài khoản và ảnh đại diện</p>
+          </div>
+        </div>
 
-      <Card className="bg-white border">
-        <CardHeader>
-          <CardTitle className="text-black">Thông tin hồ sơ</CardTitle>
-        </CardHeader>
+        {error && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3 animate-in fade-in duration-300">
+            <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-red-700 font-medium">{error}</p>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex-shrink-0 bg-white text-gray-700 border border-gray-300 hover:bg-gray-10"
+              onClick={() => setError(null)}
+            >
+              Đóng
+            </Button>
+          </div>
+        )}
 
-        <CardContent>
-          {/* Avatar Section */}
+        <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-gray-700">Thông tin hồ sơ</CardTitle>
+          </CardHeader>
+
+          <CardContent>
+            {/* Avatar Section */}
           <div className="flex gap-4 items-start mb-6">
             <div className="w-20 h-20 rounded-lg overflow-hidden border flex items-center justify-center bg-gray-100">
               {preview ? (
@@ -196,7 +214,7 @@ export default function SettingsPage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="bg-white text-black flex items-center gap-2"
+                className="bg-white flex items-center gap-2 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300"
                 disabled={loading || saving}
                 onClick={onChooseFile}
               >
@@ -237,11 +255,6 @@ export default function SettingsPage() {
               <div className="text-black mb-1">Email *</div>
               <Input className="text-black" value={email} disabled />
             </div>
-
-            {error && (
-              <div className="col-span-2 text-sm text-red-600">{error}</div>
-            )}
-
             {(loading || saving) && (
               <div className="col-span-2 flex items-center gap-2 text-sm text-gray-600">
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -250,7 +263,8 @@ export default function SettingsPage() {
             )}
           </div>
         </CardContent>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }

@@ -84,7 +84,7 @@ export function Header() {
               {email && <div className="text-sm text-gray-600 truncate">{email}</div>}
             </div>
             <div className="border-t">
-              <button onClick={() => { if (typeof window !== 'undefined') window.location.href = '/dashboard'; }} className="w-full flex items-center px-4 py-2 hover:bg-gray-50">
+              <button onClick={() => { if (typeof window !== 'undefined') window.location.href = '/settings'; }} className="w-full flex items-center px-4 py-2 hover:bg-gray-50">
                 <Settings className="w-4 h-4 mr-2" />
                 <span>Cài đặt tài khoản</span>
               </button>

@@ -6,7 +6,7 @@ import {
 } from "./auth-storage";
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:1975/api/v1").replace(/\/$/, "");
-async function requestRefresh(refresh_token: string): Promise<{ success: boolean; data?: { access_token: string }; message?: string }> {
+async function requestRefresh(refresh_token: string): Promise<any> {
   const res = await fetch(`${API_BASE}/auth/refresh`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -21,7 +21,7 @@ async function requestRefresh(refresh_token: string): Promise<{ success: boolean
     const msg = (parsed as any)?.detail || (parsed as any)?.message || `HTTP ${res.status}`;
     throw new Error(msg);
   }
-  return parsed as any;
+  return parsed;
 }
 
 class TokenRefreshManager {
@@ -50,26 +50,46 @@ class TokenRefreshManager {
 
     try {
       const response = await requestRefresh(refreshTokenValue);
-      
-      if (response.success && response.data?.access_token) {
-        const newAccessToken = response.data.access_token;
+
+      const pick = (obj: any): string | undefined => {
+        const cands = [
+          obj?.access_token,
+          obj?.token,
+          obj?.data?.access_token,
+          obj?.data?.token,
+          obj?.result?.access_token,
+          obj?.payload?.access_token,
+        ];
+        for (const v of cands) {
+          if (typeof v === "string" && v) return v;
+        }
+        return undefined;
+      };
+
+      const newAccessToken = pick(response);
+
+      if (newAccessToken) {
         saveTokens({
           access_token: newAccessToken,
           token_type: "Bearer",
           refresh_token: refreshTokenValue,
-          persist: true
+          persist: true,
         });
 
-        // Process queued requests
         this.failedQueue.forEach(({ resolve }) => {
           resolve(newAccessToken);
         });
         this.failedQueue = [];
 
         return newAccessToken;
-      } else {
-        throw new Error("Invalid refresh token response");
       }
+
+      this.failedQueue.forEach(({ resolve }) => {
+        resolve("");
+      });
+      this.failedQueue = [];
+
+      return "";
     } catch (error) {
       // Process failed queue
       this.failedQueue.forEach(({ reject }) => {
@@ -77,8 +97,6 @@ class TokenRefreshManager {
       });
       this.failedQueue = [];
 
-      // Không xoá token ngay lập tức để tránh tự thoát do lỗi mạng tạm thời
-      // Việc chuyển hướng sẽ được xử lý tại api layer nếu server trả 401 liên tục
       this.emit('tokenRefreshFailed');
       throw error;
     } finally {

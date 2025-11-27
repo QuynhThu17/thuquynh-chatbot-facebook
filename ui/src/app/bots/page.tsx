@@ -47,7 +47,8 @@ export default function BotsPage() {
   };
 
   const handleToggleStatus = async (bot: Bot) => {
-    const isActive = String(bot.status || "").toLowerCase() === "active";
+    const statusStr = String(bot.status || "").toLowerCase();
+    const isActive = statusStr === "active" || statusStr === "on";
     const actionKey = `toggle-${bot.id}`;
     
     try {
@@ -55,9 +56,10 @@ export default function BotsPage() {
       const res = isActive ? await deactivateBot(bot.id) : await activateBot(bot.id);
       
       if (res?.success !== false) {
-        setBots((prev) => prev.map((b) => 
-          b.id === bot.id ? { ...b, status: isActive ? "inactive" : "active" } : b
-        ));
+        const latest = await getBots();
+        if (latest.success) {
+          setBots(latest.data);
+        }
       } else {
         setError(res?.message || (isActive ? "Không thể tắt bot" : "Không thể bật bot"));
       }
@@ -245,7 +247,7 @@ export default function BotsPage() {
             <Button 
               variant="outline" 
               size="sm" 
-              className="flex-shrink-0"
+              className="flex-shrink-0 bg-white text-gray-700 border border-gray-300 hover:bg-gray-10"
               onClick={() => setError(null)}
             >
               Đóng
@@ -295,7 +297,8 @@ export default function BotsPage() {
         {!loading && filteredBots.length > 0 && (
           <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
             {filteredBots.map((bot, index) => {
-              const isActive = String(bot.status || "").toLowerCase() === "active";
+              const statusStr = String(bot.status || "").toLowerCase();
+              const isActive = statusStr === "active" || statusStr === "on";
               const toggleLoading = actionLoading === `toggle-${bot.id}`;
               const deleteLoading = actionLoading === `delete-${bot.id}`;
               
@@ -314,8 +317,8 @@ export default function BotsPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="text-lg font-semibold text-gray-900 whitespace-normal">
-  {bot.name}
-</h3>
+                          {bot.name}
+                        </h3>
                         <div className="flex items-center gap-2 mt-1">
                           <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-green-500' : 'bg-gray-400'}`}></span>
                           <span className={`text-xs font-medium ${isActive ? 'text-green-600' : 'text-gray-500'}`}>

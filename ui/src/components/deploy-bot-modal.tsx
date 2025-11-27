@@ -14,7 +14,7 @@ import {
   type SocialPlatform,
   type SocialPage,
 } from "@/lib/api";
-import { Rocket, Globe, UserPlus, Loader2, X } from "lucide-react";
+import { Rocket, Globe, UserPlus, Loader2, X, AlertCircle } from "lucide-react";
 
 type Step = 0 | 1 | 2 | 3 | 4 | 5;
 
@@ -180,12 +180,12 @@ export function DeployBotModal({ bot, open, onClose }: { bot: Bot | null; open: 
     <div className="fixed inset-0 z-50">
       <div className="absolute inset-0 bg-black/40" onClick={() => (!deploying ? onClose() : null)} />
       <div className="absolute inset-0 flex items-start justify-center overflow-y-auto p-6">
-        <div className="relative w-full max-w-3xl bg-white rounded-xl border shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="relative w-full max-w-3xl bg-white rounded-xl border border-gray-200 shadow-xl" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center justify-between p-6 border-b">
             <div className="flex items-center gap-2">
               <Rocket className="w-5 h-5 text-blue-600" />
               <div>
-                <div className="text-lg font-semibold">Kiểm tra & Triển khai Bot</div>
+                <div className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Kiểm tra & Triển khai Bot</div>
                 <div className="text-sm text-gray-600">Cấu hình và triển khai bot lên các nền tảng mạng xã hội</div>
               </div>
             </div>
@@ -207,7 +207,13 @@ export function DeployBotModal({ bot, open, onClose }: { bot: Bot | null; open: 
 
           <div className="p-6 space-y-4">
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm">{error}</div>
+              <div className="mb-2 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-red-700 text-sm font-medium">{error}</p>
+                </div>
+                <Button variant="outline" size="sm" className="flex-shrink-0 bg-white text-gray-700 border border-gray-300 hover:bg-gray-10" onClick={() => setError(null)}>Đóng</Button>
+              </div>
             )}
 
             {step === 0 && (
@@ -218,19 +224,39 @@ export function DeployBotModal({ bot, open, onClose }: { bot: Bot | null; open: 
                     <div className="text-sm text-gray-600">Chưa có kết nối nào</div>
                   )}
                   {(platforms || []).map((p) => (
-                    <div key={String(p.id)} className="flex items-center justify-between border rounded-lg p-4">
+                    <div key={String(p.id)} className="flex items-center justify-between border border-gray-200 rounded-lg p-4 bg-white">
                       <div className="flex items-center gap-3">
                         <Globe className="w-5 h-5 text-blue-600" />
                         <div>
                           <div className="font-medium">{p.name}</div>
-                          <div className="text-xs text-gray-500">{p.active ? "Đang hoạt động" : "Chưa hoạt động"}</div>
+                          <div className="text-xs text-gray-500">
+                            {p.active ? "Đang hoạt động" : "Chưa hoạt động"}
+                          </div>
                         </div>
                       </div>
-                      <Button variant="outline" size="sm" onClick={() => { setSelectedPlatform(p.id); setStep(1); }}>Chọn</Button>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="bg-white text-gray-700 border border-gray-300 hover:bg-gray-100"
+                        onClick={() => {
+                          setSelectedPlatform(p.id);
+                          setStep(1);
+                        }}
+                      >
+                        Chọn
+                      </Button>
                     </div>
                   ))}
                   <div className="flex items-center justify-center">
-                    <Button variant="outline" size="sm" onClick={() => setStep(1)}>Thêm Kết Nối Mới</Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-white text-gray-700 border border-gray-300 hover:bg-gray-100"
+                      onClick={() => setStep(1)}
+                    >
+                      Thêm Kết Nối Mới
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -265,7 +291,7 @@ export function DeployBotModal({ bot, open, onClose }: { bot: Bot | null; open: 
                 </div>
                 <div className="space-y-2">
                   {accounts.map((a, idx) => (
-                    <label key={String(a.id)} className={`flex items-center justify-between border rounded-lg p-4 cursor-pointer ${String(selectedAccount) === String(a.id) ? "ring-2 ring-blue-600" : ""}`}>
+                    <label key={String(a.id)} className={`flex items-center justify-between border border-gray-200 rounded-lg p-4 cursor-pointer bg-white ${String(selectedAccount) === String(a.id) ? "ring-2 ring-blue-600" : ""}`}>
                       <div className="flex items-center gap-3">
                         {a.avatar_url ? (
                           <Image src={a.avatar_url} alt={a.name} width={36} height={36} className="rounded-full" />
@@ -292,7 +318,7 @@ export function DeployBotModal({ bot, open, onClose }: { bot: Bot | null; open: 
                 <div className="text-sm font-semibold mb-2">Chọn trang</div>
                 <div className="space-y-2">
                     {pages.map((p, idx) => (
-                    <label key={String(p.id)} className={`flex items-center justify-between border rounded-lg p-4 cursor-pointer ${p.is_connected ? "bg-green-50" : ""} ${String(selectedPage) === String(p.id) ? "ring-2 ring-blue-600" : ""}`}>
+                    <label key={String(p.id)} className={`flex items-center justify-between border border-gray-200 rounded-lg p-4 cursor-pointer bg-white ${p.is_connected ? "bg-green-50" : ""} ${String(selectedPage) === String(p.id) ? "ring-2 ring-blue-600" : ""}`}>
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full bg-gray-200" />
                         <div>
@@ -313,7 +339,7 @@ export function DeployBotModal({ bot, open, onClose }: { bot: Bot | null; open: 
             {step === 4 && (
               <div>
                 <div className="text-sm font-semibold mb-2">Kiểm tra Bot</div>
-                <div className="border rounded-lg p-4">
+                <div className="border border-gray-200 rounded-lg p-4 bg-white">
                   <div className="space-y-2 max-h-60 overflow-auto">
                     {testMessages.map((m, i) => (
                       <div key={i} className={`text-sm ${m.from === "user" ? "text-gray-800" : "text-blue-700"}`}>{m.text}</div>
@@ -323,8 +349,8 @@ export function DeployBotModal({ bot, open, onClose }: { bot: Bot | null; open: 
                     )}
                   </div>
                   <div className="mt-3 flex items-center gap-2">
-                    <Input placeholder="Nhập tin nhắn kiểm thử của bạn..." value={testInput} onChange={(e) => setTestInput(e.target.value)} />
-                    <Button onClick={sendTest} className="bg-blue-600 text-white">Gửi</Button>
+                    <Input placeholder="Nhập tin nhắn kiểm thử của bạn..." value={testInput} onChange={(e) => setTestInput(e.target.value)} className="border-gray-300 focus:border-blue-500 focus:ring-blue-500" />
+                    <Button onClick={sendTest} className="bg-blue-600 text-white hover:bg-blue-700">Gửi</Button>
                   </div>
                 </div>
               </div>
@@ -333,7 +359,7 @@ export function DeployBotModal({ bot, open, onClose }: { bot: Bot | null; open: 
             {step === 5 && (
               <div>
                 <div className="text-lg font-semibold mb-3">Triển khai Bot</div>
-                <div className="rounded-lg border p-4">
+                <div className="rounded-lg border border-gray-200 p-4 bg-white">
                   <div className="text-sm font-semibold mb-2">Tổng quan triển khai</div>
                   <div className="grid grid-cols-2 gap-y-2 text-sm">
                     <div>Nền tảng:</div>
@@ -358,7 +384,7 @@ export function DeployBotModal({ bot, open, onClose }: { bot: Bot | null; open: 
                 </div>
                 <div className="mt-4 flex items-center justify-between">
                   <Button variant="outline" className="bg-white" onClick={() => setStep(4)}>Quay lại</Button>
-                  <Button className="bg-blue-600 text-white" onClick={onClose}>Hoàn thành</Button>
+                  <Button className="bg-blue-600 text-white hover:bg-blue-700" onClick={onClose}>Hoàn thành</Button>
                 </div>
               </div>
             )}
@@ -372,7 +398,7 @@ export function DeployBotModal({ bot, open, onClose }: { bot: Bot | null; open: 
 
             <div className="flex items-center justify-between pt-2">
               <Button variant="outline" onClick={onBack} disabled={deploying || step === 0} className="bg-white">Quay lại</Button>
-              <Button onClick={onNext} disabled={deploying || !canNext} className="bg-blue-600 text-white">
+              <Button onClick={onNext} disabled={deploying || !canNext} className="bg-blue-600 text-white hover:bg-blue-700">
                 {deploying ? (
                   <span className="flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" />Đang triển khai</span>
                 ) : (

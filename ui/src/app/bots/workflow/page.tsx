@@ -125,7 +125,7 @@ function WorkflowCard({
             <Button
               variant="outline"
               size="sm"
-              className="bg-white hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300"
+              className="bg-white text-black hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300"
               onClick={() => onView(workflow)}
             >
               <Eye className="h-4 w-4 mr-1.5" />
@@ -135,7 +135,7 @@ function WorkflowCard({
             <Button
               variant="ghost"
               size="icon"
-              className="hover:bg-purple-50 hover:text-purple-600"
+              className="hover:bg-purple-50 text-black hover:text-purple-600"
               onClick={() => setEditing({ id: workflow.id, title: workflow.title, description: workflow.description || "" })}
               disabled={isDeleting || isCopying || isSaving}
             >
@@ -145,7 +145,7 @@ function WorkflowCard({
             <Button
               variant="ghost"
               size="icon"
-              className="hover:bg-green-50 hover:text-green-600"
+              className="hover:bg-green-50 text-black hover:text-green-600"
               onClick={() => onCopy(workflow.id)}
               disabled={isDeleting || isCopying || isSaving}
             >
@@ -159,7 +159,7 @@ function WorkflowCard({
             <Button
               variant="ghost"
               size="icon"
-              className="hover:bg-red-50 hover:text-red-600"
+              className="hover:bg-red-50 text-black hover:text-red-600"
               onClick={() => onDelete(workflow.id)}
               disabled={isDeleting || isCopying || isSaving}
             >

@@ -183,18 +183,19 @@ async function apiFetch(path: string, options: RequestInit = {}) {
     // If token is expired, try to refresh it
     if (response.status === 401 && token) {
       try {
-        await tokenRefreshManager.refreshAccessToken();
-        
-        // Retry the request with new token
+        const refreshed = await tokenRefreshManager.refreshAccessToken();
         const newToken = getAccessToken();
-        if (newToken) {
+
+        if (newToken && newToken !== token) {
           headers.set("Authorization", `Bearer ${newToken}`);
+        } else {
+          headers.delete("Authorization");
         }
-        
+
         const retryResponse = await fetch(url(path), {
           ...options,
           headers,
-          credentials: "include"
+          credentials: "include",
         });
         
         if (!retryResponse.ok) {
@@ -292,7 +293,18 @@ export async function getBots(params?: {
     target: b?.target ?? b?.goal ?? "",
     mission: b?.mission ?? b?.task ?? "",
     note: b?.note ?? b?.notes ?? undefined,
-    status: b?.status ?? b?.state ?? (b?.active ? "active" : undefined),
+    status: (() => {
+      const rawStatus = ((): string | undefined => {
+        if (typeof b?.status === "string") return b.status;
+        if (typeof b?.state === "string") return b.state;
+        if (typeof b?.active === "boolean") return b.active ? "active" : "inactive";
+        return undefined;
+      })();
+      const s = String(rawStatus || "").toLowerCase();
+      if (s === "on" || s === "active" || s === "running" || s === "enabled") return "active";
+      if (s === "off" || s === "inactive" || s === "stopped" || s === "disabled") return "inactive";
+      return s || undefined;
+    })(),
     type: b?.type ?? b?.bot_type ?? undefined,
     language_code: b?.language_code ?? b?.language ?? undefined,
     identity_id: b?.identity_id ?? b?.identity?.id ?? b?.identity?._id ?? undefined,
