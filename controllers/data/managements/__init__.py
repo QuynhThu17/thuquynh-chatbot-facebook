@@ -336,6 +336,10 @@ class MongoDBManagementFactory:
     @property
     def translation_manager(self):
         return self.additional_factory.translation_manager
+
+    @property
+    def major_statistic_manager(self):
+        return self.additional_factory.major_statistic_manager
     
     # SuperAdmin Management Properties
     @property

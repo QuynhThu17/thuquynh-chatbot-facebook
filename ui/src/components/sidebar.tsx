@@ -149,7 +149,7 @@ export function Sidebar() {
           <span className="ml-auto bg-red-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full">{sessions.length}</span>
         </Link>
 
-        <Link href="#" className={getLinkClassName("/statistics")}>
+        <Link href="/statistics" className={getLinkClassName("/statistics")}>
           <BarChart3 className="w-5 h-5 mr-3" />
           Thống kê
         </Link>

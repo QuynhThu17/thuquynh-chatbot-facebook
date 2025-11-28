@@ -561,6 +561,155 @@ export async function getSocialPages(
   return { success: !!raw?.success, data, message: raw?.message };
 }
 
+export type MajorTopItem = { major: string; count: number };
+export type MajorsTimelineItem = { date: string; counts: Record<string, number> };
+export type TopicItem = { topic: string; count: number };
+export type PopularQuestionItem = { question: string; count: number; sample?: string };
+export type HeatmapItem = { dow: number; hour: number; count: number };
+
+export async function getStatisticsTopMajors(params?: {
+  start_date?: string;
+  end_date?: string;
+  session_id?: string;
+  customer_id?: string;
+  bot_id?: string;
+  social_id?: string;
+  social_page_id?: string;
+  limit?: number;
+  auto_extract?: boolean;
+}): Promise<{ success: boolean; data: MajorTopItem[]; message?: string }> {
+  const qs = new URLSearchParams();
+  if (params?.start_date) qs.append("start_date", params.start_date);
+  if (params?.end_date) qs.append("end_date", params.end_date);
+  if (params?.session_id) qs.append("session_id", params.session_id);
+  if (params?.customer_id) qs.append("customer_id", params.customer_id);
+  if (params?.bot_id) qs.append("bot_id", params.bot_id);
+  if (params?.social_id) qs.append("social_id", params.social_id);
+  if (params?.social_page_id) qs.append("social_page_id", params.social_page_id);
+  if (params?.limit) qs.append("limit", String(params.limit));
+  if (params?.auto_extract !== undefined) qs.append("auto_extract", String(params.auto_extract));
+  const path = `/statistics/majors/top${qs.toString() ? `?${qs.toString()}` : ""}`;
+  const res = await apiFetch(path, { method: "GET" });
+  const raw = await handle<any>(res);
+  const rows: any[] = Array.isArray(raw?.data) ? raw.data : [];
+  const data: MajorTopItem[] = rows.map((r: any) => ({ major: String(r?.major ?? ""), count: Number(r?.count ?? 0) }));
+  return { success: !!raw?.success, data, message: raw?.message };
+}
+
+export async function getStatisticsMajorsTimeline(params?: {
+  start_date?: string;
+  end_date?: string;
+  session_id?: string;
+  customer_id?: string;
+  bot_id?: string;
+  social_id?: string;
+  social_page_id?: string;
+  auto_extract?: boolean;
+}): Promise<{ success: boolean; data: MajorsTimelineItem[]; message?: string }> {
+  const qs = new URLSearchParams();
+  if (params?.start_date) qs.append("start_date", params.start_date);
+  if (params?.end_date) qs.append("end_date", params.end_date);
+  if (params?.session_id) qs.append("session_id", params.session_id);
+  if (params?.customer_id) qs.append("customer_id", params.customer_id);
+  if (params?.bot_id) qs.append("bot_id", params.bot_id);
+  if (params?.social_id) qs.append("social_id", params.social_id);
+  if (params?.social_page_id) qs.append("social_page_id", params.social_page_id);
+  if (params?.auto_extract !== undefined) qs.append("auto_extract", String(params.auto_extract));
+  const path = `/statistics/majors/timeline${qs.toString() ? `?${qs.toString()}` : ""}`;
+  const res = await apiFetch(path, { method: "GET" });
+  const raw = await handle<any>(res);
+  const rows: any[] = Array.isArray(raw?.data) ? raw.data : [];
+  const data: MajorsTimelineItem[] = rows.map((r: any) => ({ date: String(r?.date ?? r?._id?.date ?? ""), counts: r?.counts ?? {} }));
+  return { success: !!raw?.success, data, message: raw?.message };
+}
+
+export async function getStatisticsMajorTopics(params?: {
+  start_date?: string;
+  end_date?: string;
+  major?: string;
+  session_id?: string;
+  customer_id?: string;
+  bot_id?: string;
+  social_id?: string;
+  social_page_id?: string;
+  limit?: number;
+  auto_extract?: boolean;
+}): Promise<{ success: boolean; data: TopicItem[]; message?: string }> {
+  const qs = new URLSearchParams();
+  if (params?.start_date) qs.append("start_date", params.start_date);
+  if (params?.end_date) qs.append("end_date", params.end_date);
+  if (params?.major) qs.append("major", params.major);
+  if (params?.session_id) qs.append("session_id", params.session_id);
+  if (params?.customer_id) qs.append("customer_id", params.customer_id);
+  if (params?.bot_id) qs.append("bot_id", params.bot_id);
+  if (params?.social_id) qs.append("social_id", params.social_id);
+  if (params?.social_page_id) qs.append("social_page_id", params.social_page_id);
+  if (params?.limit) qs.append("limit", String(params.limit));
+  if (params?.auto_extract !== undefined) qs.append("auto_extract", String(params.auto_extract));
+  const path = `/statistics/majors/topics${qs.toString() ? `?${qs.toString()}` : ""}`;
+  const res = await apiFetch(path, { method: "GET" });
+  const raw = await handle<any>(res);
+  const rows: any[] = Array.isArray(raw?.data) ? raw.data : [];
+  const data: TopicItem[] = rows.map((r: any) => ({ topic: String(r?.topic ?? ""), count: Number(r?.count ?? 0) }));
+  return { success: !!raw?.success, data, message: raw?.message };
+}
+
+export async function getStatisticsPopularQuestions(params?: {
+  start_date?: string;
+  end_date?: string;
+  session_id?: string;
+  customer_id?: string;
+  bot_id?: string;
+  social_id?: string;
+  social_page_id?: string;
+  limit?: number;
+  auto_extract?: boolean;
+}): Promise<{ success: boolean; data: PopularQuestionItem[]; message?: string }> {
+  const qs = new URLSearchParams();
+  if (params?.start_date) qs.append("start_date", params.start_date);
+  if (params?.end_date) qs.append("end_date", params.end_date);
+  if (params?.session_id) qs.append("session_id", params.session_id);
+  if (params?.customer_id) qs.append("customer_id", params.customer_id);
+  if (params?.bot_id) qs.append("bot_id", params.bot_id);
+  if (params?.social_id) qs.append("social_id", params.social_id);
+  if (params?.social_page_id) qs.append("social_page_id", params.social_page_id);
+  if (params?.limit) qs.append("limit", String(params.limit));
+  if (params?.auto_extract !== undefined) qs.append("auto_extract", String(params.auto_extract));
+  const path = `/statistics/questions/popular${qs.toString() ? `?${qs.toString()}` : ""}`;
+  const res = await apiFetch(path, { method: "GET" });
+  const raw = await handle<any>(res);
+  const rows: any[] = Array.isArray(raw?.data) ? raw.data : [];
+  const data: PopularQuestionItem[] = rows.map((r: any) => ({ question: String(r?.question ?? ""), count: Number(r?.count ?? 0), sample: r?.sample }));
+  return { success: !!raw?.success, data, message: raw?.message };
+}
+
+export async function getStatisticsHeatmap(params?: {
+  start_date?: string;
+  end_date?: string;
+  session_id?: string;
+  customer_id?: string;
+  bot_id?: string;
+  social_id?: string;
+  social_page_id?: string;
+  auto_extract?: boolean;
+}): Promise<{ success: boolean; data: HeatmapItem[]; message?: string }> {
+  const qs = new URLSearchParams();
+  if (params?.start_date) qs.append("start_date", params.start_date);
+  if (params?.end_date) qs.append("end_date", params.end_date);
+  if (params?.session_id) qs.append("session_id", params.session_id);
+  if (params?.customer_id) qs.append("customer_id", params.customer_id);
+  if (params?.bot_id) qs.append("bot_id", params.bot_id);
+  if (params?.social_id) qs.append("social_id", params.social_id);
+  if (params?.social_page_id) qs.append("social_page_id", params.social_page_id);
+  if (params?.auto_extract !== undefined) qs.append("auto_extract", String(params.auto_extract));
+  const path = `/statistics/heatmap${qs.toString() ? `?${qs.toString()}` : ""}`;
+  const res = await apiFetch(path, { method: "GET" });
+  const raw = await handle<any>(res);
+  const rows: any[] = Array.isArray(raw?.data) ? raw.data : [];
+  const data: HeatmapItem[] = rows.map((r: any) => ({ dow: Number(r?.dow ?? 0), hour: Number(r?.hour ?? 0), count: Number(r?.count ?? 0) }));
+  return { success: !!raw?.success, data, message: raw?.message };
+}
+
 export async function connectBotToSocial(
   bot_id: string | number,
   payload: {

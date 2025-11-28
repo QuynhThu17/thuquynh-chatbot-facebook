@@ -25,6 +25,11 @@ import {
   getDocuments,
   uploadAvatar,
   updateAvatar,
+  getStatisticsTopMajors,
+  getStatisticsMajorsTimeline,
+  getStatisticsMajorTopics,
+  getStatisticsPopularQuestions,
+  getStatisticsHeatmap,
 } from "./api";
 
 export function useCurrentUserQuery() {
@@ -142,4 +147,34 @@ export function useUploadAvatarMutation() {
 export function useUpdateAvatarMutation() {
   const qc = useQueryClient();
   return useMutation({ mutationFn: async (avatar_url: string) => (await updateAvatar(avatar_url)).data, onSuccess: () => { qc.invalidateQueries({ queryKey: ["avatar", "info"] }); } });
+}
+
+export function useTopMajorsQuery(params?: { start_date?: string; end_date?: string; limit?: number; session_id?: string; customer_id?: string; bot_id?: string; social_id?: string; social_page_id?: string; auto_extract?: boolean }, enabled: boolean = true) {
+  const p = { ...params };
+  const key = ["statistics", "majors", "top", String(p.start_date || ""), String(p.end_date || ""), String(p.limit || 10), String(p.session_id || ""), String(p.customer_id || ""), String(p.bot_id || ""), String(p.social_id || ""), String(p.social_page_id || ""), String(p.auto_extract ?? true)];
+  return useQuery({ queryKey: key, queryFn: async () => (await getStatisticsTopMajors(p)).data, placeholderData: (prev) => prev, enabled });
+}
+
+export function useMajorsTimelineQuery(params?: { start_date?: string; end_date?: string; session_id?: string; customer_id?: string; bot_id?: string; social_id?: string; social_page_id?: string; auto_extract?: boolean }, enabled: boolean = true) {
+  const p = { ...params };
+  const key = ["statistics", "majors", "timeline", String(p.start_date || ""), String(p.end_date || ""), String(p.session_id || ""), String(p.customer_id || ""), String(p.bot_id || ""), String(p.social_id || ""), String(p.social_page_id || ""), String(p.auto_extract ?? true)];
+  return useQuery({ queryKey: key, queryFn: async () => (await getStatisticsMajorsTimeline(p)).data, placeholderData: (prev) => prev, enabled });
+}
+
+export function useMajorTopicsQuery(params?: { start_date?: string; end_date?: string; major?: string; limit?: number; session_id?: string; customer_id?: string; bot_id?: string; social_id?: string; social_page_id?: string; auto_extract?: boolean }, enabled: boolean = true) {
+  const p = { ...params };
+  const key = ["statistics", "majors", "topics", String(p.start_date || ""), String(p.end_date || ""), String(p.major || ""), String(p.limit || 20), String(p.session_id || ""), String(p.customer_id || ""), String(p.bot_id || ""), String(p.social_id || ""), String(p.social_page_id || ""), String(p.auto_extract ?? true)];
+  return useQuery({ queryKey: key, queryFn: async () => (await getStatisticsMajorTopics(p)).data, placeholderData: (prev) => prev, enabled });
+}
+
+export function usePopularQuestionsQuery(params?: { start_date?: string; end_date?: string; limit?: number; session_id?: string; customer_id?: string; bot_id?: string; social_id?: string; social_page_id?: string; auto_extract?: boolean }, enabled: boolean = true) {
+  const p = { ...params };
+  const key = ["statistics", "questions", "popular", String(p.start_date || ""), String(p.end_date || ""), String(p.limit || 20), String(p.session_id || ""), String(p.customer_id || ""), String(p.bot_id || ""), String(p.social_id || ""), String(p.social_page_id || ""), String(p.auto_extract ?? true)];
+  return useQuery({ queryKey: key, queryFn: async () => (await getStatisticsPopularQuestions(p)).data, placeholderData: (prev) => prev, enabled });
+}
+
+export function useHeatmapQuery(params?: { start_date?: string; end_date?: string; session_id?: string; customer_id?: string; bot_id?: string; social_id?: string; social_page_id?: string; auto_extract?: boolean }, enabled: boolean = true) {
+  const p = { ...params };
+  const key = ["statistics", "heatmap", String(p.start_date || ""), String(p.end_date || ""), String(p.session_id || ""), String(p.customer_id || ""), String(p.bot_id || ""), String(p.social_id || ""), String(p.social_page_id || ""), String(p.auto_extract ?? true)];
+  return useQuery({ queryKey: key, queryFn: async () => (await getStatisticsHeatmap(p)).data, placeholderData: (prev) => prev, enabled });
 }
