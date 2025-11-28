@@ -99,12 +99,12 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="w-64 bg-gray-50 border-r border-gray-200 flex flex-col">
+    <aside className="w-64 bg-gray-50 border-r border-gray-200 flex flex-col sticky top-0 h-screen">
       <div className="h-24 flex items-center justify-center border-b border-gray-200">
         <Image src="/logoHUR.jpg" alt="HUEAI Logo" width={60} height={60} />
         <h1 className="text-xl font-bold ml-4">HUEAI</h1>
       </div>
-      <nav className="flex-1 p-4 space-y-2">
+      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
         <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tổng quan</h2>
         <Link href="/dashboard" className={getLinkClassName("/dashboard")}>
           <DashboardIcon />

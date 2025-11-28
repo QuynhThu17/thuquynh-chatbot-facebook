@@ -20,158 +20,105 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { type Procedure } from "@/lib/api";
-import { useProceduresQuery, useUpdateProcedureMutation, useCopyProcedureMutation, useDeleteProcedureMutation } from "@/lib/queries";
+import { useProceduresQuery, useCopyProcedureMutation, useDeleteProcedureMutation } from "@/lib/queries";
 import { WorkflowDetailsModal } from "@/components/workflow-details-modal";
 import { CreateProcedureModal } from "@/components/create-procedure-modal";
+import { EditWorkflowModal } from "@/components/edit-workflow-modal";
 
 function WorkflowCard({
   workflow,
-  editing,
-  setEditing,
-  onSave,
+  onEdit,
   onCopy,
   onDelete,
   onView,
   isDeleting,
   isCopying,
-  isSaving,
 }: {
   workflow: Procedure;
-  editing: { id: Procedure["id"] | null; title: string; description: string };
-  setEditing: (e: { id: Procedure["id"] | null; title: string; description: string }) => void;
-  onSave: (id: Procedure["id"], title: string, description: string) => Promise<void>;
+  onEdit: (w: Procedure) => void;
   onCopy: (id: Procedure["id"]) => Promise<void>;
   onDelete: (id: Procedure["id"]) => Promise<void>;
   onView: (w: Procedure) => void;
   isDeleting: boolean;
   isCopying: boolean;
-  isSaving: boolean;
 }) {
-  const isEditing = editing.id === workflow.id;
 
   return (
     <Card className="flex flex-col bg-white border border-gray-200 hover:shadow-lg transition-all duration-200 hover:border-indigo-300">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
-          {isEditing ? (
-            <div className="flex items-center gap-2 flex-1">
-              <Input
-                value={editing.title}
-                onChange={(e) => setEditing({ ...editing, title: e.target.value })}
-                className="text-base font-semibold border-gray-300 focus:border-indigo-500"
-                placeholder="Tên quy trình..."
-              />
-              <Button 
-                variant="ghost" 
-                size="icon"
-                className="hover:bg-green-50 hover:text-green-600 flex-shrink-0"
-                onClick={() => onSave(workflow.id, editing.title, editing.description)}
-                disabled={isSaving}
-              >
-                {isSaving ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Check className="w-4 h-4" />
-                )}
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="icon"
-                className="hover:bg-gray-100 flex-shrink-0"
-                onClick={() => setEditing({ id: null, title: "", description: "" })}
-                disabled={isSaving}
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-          ) : (
-            <>
-              <CardTitle className="text-base font-bold text-gray-900 flex-1">
-                {workflow.title}
-              </CardTitle>
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center flex-shrink-0 shadow-md">
-                <Workflow className="w-5 h-5 text-white" />
-              </div>
-            </>
-          )}
+          <CardTitle className="text-base font-bold text-gray-900 flex-1">
+            {workflow.title}
+          </CardTitle>
+          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center flex-shrink-0 shadow-md">
+            <Workflow className="w-5 h-5 text-white" />
+          </div>
         </div>
       </CardHeader>
 
       <CardContent className="flex-grow space-y-3">
-        {isEditing ? (
-          <textarea
-            value={editing.description}
-            onChange={(e) => setEditing({ ...editing, description: e.target.value })}
-            className="w-full rounded-lg border border-gray-300 p-3 text-sm text-gray-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none"
-            rows={4}
-            placeholder="Mô tả quy trình..."
-          />
-        ) : (
-          <>
-            <p className="text-sm text-gray-700 line-clamp-3 leading-relaxed">
-              {workflow.description || "Chưa có mô tả"}
-            </p>
-            {workflow.type && (
-              <div className="inline-flex items-center px-3 py-1 rounded-lg bg-indigo-50 border border-indigo-100">
-                <span className="text-xs font-medium text-indigo-700">{workflow.type}</span>
-              </div>
-            )}
-          </>
-        )}
+        <>
+          <p className="text-sm text-gray-700 line-clamp-3 leading-relaxed">
+            {workflow.description || "Chưa có mô tả"}
+          </p>
+          {workflow.type && (
+            <div className="inline-flex items-center px-3 py-1 rounded-lg bg-indigo-50 border border-indigo-100">
+              <span className="text-xs font-medium text-indigo-700">{workflow.type}</span>
+            </div>
+          )}
+        </>
       </CardContent>
 
       <div className="flex items-center justify-end gap-1 p-3 border-t border-gray-100">
-        {!isEditing && (
-          <>
-            <Button
-              variant="outline"
-              size="sm"
-              className="bg-white text-black hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300"
-              onClick={() => onView(workflow)}
-            >
-              <Eye className="h-4 w-4 mr-1.5" />
-              <span className="hidden sm:inline">Xem</span>
-            </Button>
+        <>
+          <Button
+            variant="outline"
+            size="sm"
+            className="bg-white text-black hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300"
+            onClick={() => onView(workflow)}
+          >
+            <Eye className="h-4 w-4 mr-1.5" />
+            <span className="hidden sm:inline">Xem</span>
+          </Button>
 
-            <Button
-              variant="ghost"
-              size="icon"
-              className="hover:bg-purple-50 text-black hover:text-purple-600"
-              onClick={() => setEditing({ id: workflow.id, title: workflow.title, description: workflow.description || "" })}
-              disabled={isDeleting || isCopying || isSaving}
-            >
-              <Edit className="w-4 h-4" />
-            </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="hover:bg-purple-50 text-black hover:text-purple-600"
+            onClick={() => onEdit(workflow)}
+            disabled={isDeleting || isCopying}
+          >
+            <Edit className="w-4 h-4" />
+          </Button>
 
-            <Button
-              variant="ghost"
-              size="icon"
-              className="hover:bg-green-50 text-black hover:text-green-600"
-              onClick={() => onCopy(workflow.id)}
-              disabled={isDeleting || isCopying || isSaving}
-            >
-              {isCopying ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Copy className="w-4 h-4" />
-              )}
-            </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="hover:bg-green-50 text-black hover:text-green-600"
+            onClick={() => onCopy(workflow.id)}
+            disabled={isDeleting || isCopying}
+          >
+            {isCopying ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Copy className="w-4 h-4" />
+            )}
+          </Button>
 
-            <Button
-              variant="ghost"
-              size="icon"
-              className="hover:bg-red-50 text-black hover:text-red-600"
-              onClick={() => onDelete(workflow.id)}
-              disabled={isDeleting || isCopying || isSaving}
-            >
-              {isDeleting ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Trash2 className="w-4 h-4" />
-              )}
-            </Button>
-          </>
-        )}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="hover:bg-red-50 text-black hover:text-red-600"
+            onClick={() => onDelete(workflow.id)}
+            disabled={isDeleting || isCopying}
+          >
+            {isDeleting ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Trash2 className="w-4 h-4" />
+            )}
+          </Button>
+        </>
       </div>
     </Card>
   );
@@ -183,14 +130,11 @@ export default function WorkflowPage() {
   const loading = proceduresQuery.isLoading && procedures.length === 0;
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
-  const [editing, setEditing] = useState<{ id: Procedure["id"] | null; title: string; description: string }>({ 
-    id: null, 
-    title: "", 
-    description: "" 
-  });
   const [selected, setSelected] = useState<Procedure | null>(null);
   const [open, setOpen] = useState<boolean>(false);
   const [createOpen, setCreateOpen] = useState<boolean>(false);
+  const [editOpen, setEditOpen] = useState<boolean>(false);
+  const [editingProc, setEditingProc] = useState<Procedure | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
@@ -210,26 +154,9 @@ export default function WorkflowPage() {
     );
   }, [procedures, searchTerm]);
 
-  const updateMutation = useUpdateProcedureMutation();
-  const onSave = async (id: Procedure["id"], title: string, description: string) => {
-    if (!title.trim()) {
-      setError("Vui lòng nhập tên quy trình");
-      return;
-    }
-
-    const actionKey = `save-${id}`;
-    setActionLoading(actionKey);
-    try {
-      const updated = await updateMutation.mutateAsync({ id, title, description });
-      if (updated) {
-        setProcedures((prev) => prev.map((p) => p.id === id ? { ...p, title: updated.title, description: updated.description } : p));
-        setEditing({ id: null, title: "", description: "" });
-      }
-    } catch (err: any) {
-      setError(err?.message || "Không thể cập nhật quy trình");
-    } finally {
-      setActionLoading(null);
-    }
+  const onStartEdit = (w: Procedure) => {
+    setEditingProc(w);
+    setEditOpen(true);
   };
 
   const copyMutation = useCopyProcedureMutation();
@@ -256,7 +183,6 @@ export default function WorkflowPage() {
     try {
       await deleteMutation.mutateAsync(id);
       setProcedures((prev) => prev.filter((p) => p.id !== id));
-      if (editing.id === id) setEditing({ id: null, title: "", description: "" });
     } catch (err: any) {
       setError(err?.message || "Không thể xóa quy trình");
     } finally {
@@ -271,7 +197,7 @@ export default function WorkflowPage() {
 
   return (
     <div className="min-h-screen bg-white p-6">
-      <div className="max-w-7xl mx-auto">
+      <div>
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-8">
           <div>
@@ -316,7 +242,7 @@ export default function WorkflowPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-gray-900">{editing.id ? 1 : 0}</div>
+              <div className="text-3xl font-bold text-gray-900">{editOpen ? 1 : 0}</div>
               <p className="text-xs text-gray-500 mt-1">Quy trình đang edit</p>
             </CardContent>
           </Card>
@@ -436,15 +362,12 @@ export default function WorkflowPage() {
               <WorkflowCard
                 key={workflow.id || `workflow-${index}`}
                 workflow={workflow}
-                editing={editing}
-                setEditing={setEditing}
-                onSave={onSave}
+                onEdit={onStartEdit}
                 onCopy={onCopy}
                 onDelete={onDelete}
                 onView={onView}
                 isDeleting={actionLoading === `delete-${workflow.id}`}
                 isCopying={actionLoading === `copy-${workflow.id}`}
-                isSaving={actionLoading === `save-${workflow.id}`}
               />
             ))}
           </div>
@@ -466,6 +389,17 @@ export default function WorkflowPage() {
           onCreated={(p) => {
             setProcedures((prev) => [p, ...prev]);
             setCreateOpen(false);
+          }}
+        />
+
+        <EditWorkflowModal
+          open={editOpen}
+          onClose={() => setEditOpen(false)}
+          initial={editingProc}
+          onUpdated={(p) => {
+            setProcedures((prev) => prev.map((x) => x.id === p.id ? { ...x, title: p.title, description: p.description } : x));
+            setEditOpen(false);
+            setEditingProc(null);
           }}
         />
       </div>

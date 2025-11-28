@@ -101,19 +101,19 @@ export function UploadDocumentModal({ open, onClose, onUploaded }: UploadDocumen
               <label className="text-sm font-medium">Tên tài liệu <span className="text-red-500">*</span></label>
               <Input placeholder="Nhập tên tài liệu" value={title} onChange={(e) => setTitle(e.target.value)} className="bg-white" />
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Công ty</label>
+            {/* <div className="space-y-2">
+              <label className="text-black font-medium">Công ty</label>
               <Select value={company} onValueChange={(v) => setCompany(v === "none" ? "" : v)}>
                 <SelectTrigger className="bg-white">
                   <SelectValue placeholder="Chọn công ty" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="text-black">
                   <SelectItem value="none">Không chọn</SelectItem>
                   <SelectItem value="company_a">HUEAI</SelectItem>
                   <SelectItem value="company_b">Company B</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
+            </div> */}
             <div className="space-y-2">
               <label className="text-sm font-medium">Tệp <span className="text-red-500">*</span></label>
               <input

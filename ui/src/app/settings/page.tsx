@@ -141,7 +141,7 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen from-slate-50 to-slate-50 p-6">
-      <div className="max-w-7xl mx-auto">
+      <div>
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-8">
           <div>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-black mb-2">Cài đặt</h1>
