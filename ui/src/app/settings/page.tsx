@@ -144,7 +144,7 @@ export default function SettingsPage() {
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-8">
           <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">Cài đặt</h1>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-black mb-2">Cài đặt</h1>
             <p className="text-gray-600">Quản lý cài đặt tài khoản và ảnh đại diện</p>
           </div>
         </div>
@@ -190,7 +190,7 @@ export default function SettingsPage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="bg-white flex items-center gap-2 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300"
+                className="bg-white text-black flex items-center gap-2 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300"
                 disabled={loading || saving}
                 onClick={onChooseFile}
               >

@@ -420,9 +420,12 @@ export default function HistoryPage() {
                     const active = String(activeSessionId || "") === String(s.id);
                     return (
                       <div key={String(s.id)} className={`px-4 py-3 border border-gray-200 rounded-xl mx-4 mb-3 cursor-pointer transition-all duration-200 ${active ? "bg-blue-50 border-blue-300 shadow-md" : "bg-white hover:bg-gray-50 hover:border-blue-300 hover:shadow-md"}`} onClick={() => { if (latest) openChat(latest); else setActiveSessionId(String(s.id)); }}>
-                        <div className="flex items-center justify-between">
-                          <div className="font-medium truncate">{latest?.text || String(s.id)}</div>
-                          <div className="text-xs text-gray-500">{formatRelativeTime(latest?.created_at || s.last_activity || "")}</div>
+                        <div className="flex justify-between">
+                          <div className="font-medium truncate pr-2">{latest?.text || String(s.id)}</div>
+                        </div>
+
+                        <div className="mt-1 text-xs text-gray-500">
+                          {formatRelativeTime(latest?.created_at || s.last_activity || "")}
                         </div>
                         <div className="mt-1 text-xs text-gray-600 truncate">{latest ? `Page: ${String(latest.social_page_id || "")} • Bot: ${String(latest.bot_id || "")}` : ""}</div>
                         <div className="mt-2 flex items-center justify-end gap-2">
@@ -531,7 +534,7 @@ export default function HistoryPage() {
           )}
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
             <div className="grid grid-cols-12 gap-2 px-4 py-3 border-b text-xs text-gray-600">
-              <div className="col-span-2">Notifications ID</div>
+              <div className="col-span-2">Thông báo</div>
               <div className="col-span-5">Nội dung</div>
               <div className="col-span-2">Độ ưu tiên</div>
               <div className="col-span-1">Trạng thái</div>
@@ -539,23 +542,66 @@ export default function HistoryPage() {
               <div className="col-span-1">Thao tác</div>
             </div>
             {filteredNotifications.map((n) => (
-              <div key={String(n.id)} className="grid grid-cols-12 gap-2 px-4 py-3 border-t items-center text-sm">
+              <div
+                key={String(n.id)}
+                className="grid grid-cols-12 gap-3 px-4 py-3 border-t items-center text-sm"
+              >
+                {/* 2 cột: ID */}
                 <div className="col-span-2 truncate">{String(n.id)}</div>
+
+                {/* 5 cột: Nội dung */}
                 <div className="col-span-5 truncate">
                   <div className="font-medium">{n.title || "Không có tiêu đề"}</div>
                   <div className="text-gray-700 text-xs mt-1 truncate">{n.content || ""}</div>
                 </div>
+
+                {/* 2 cột: Ưu tiên */}
                 <div className="col-span-2">
-                  <span className="text-yellow-500">{"★".repeat(Math.max(1, Math.min(5, Number(n.priority) || 3)))}</span>
-                  <span className="text-xs text-gray-500 ml-1">({n.priority || 3})</span>
+                  <span className="text-yellow-500">
+                    {"★".repeat(Math.max(1, Math.min(5, Number(n.priority) || 3)))}
+                  </span>
+                  <span className="text-xs text-gray-500 ml-1">
+                    ({n.priority || 3})
+                  </span>
                 </div>
+
+                {/* 1 cột: Trạng thái */}
                 <div className="col-span-1">
-                  <span className={`px-2 py-1 rounded-full text-xs ${n.is_read ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>{n.is_read ? "Đã đọc" : "Chưa đọc"}</span>
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs ${
+                      n.is_read
+                        ? "bg-green-100 text-green-700"
+                        : "bg-red-100 text-red-700"
+                    }`}
+                  >
+                    {n.is_read ? "Đã đọc" : "Chưa đọc"}
+                  </span>
                 </div>
-                <div className="col-span-1 text-xs text-gray-600">{n.created_at || ""}</div>
-                <div className="col-span-1 flex items-center gap-2">
-                  <Button variant="outline" size="sm" className="bg-white" onClick={() => markRead(n.id, !n.is_read)}>{n.is_read ? "Chưa đọc" : "Đã đọc"}</Button>
-                  <Button variant="outline" size="sm" className="bg-white text-red-600" onClick={() => removeNotification(n.id)}>Xóa</Button>
+
+                {/* 1 cột: Thời gian */}
+                <div className="col-span-1 text-xs text-gray-600 truncate">
+                  {n.created_at || ""}
+                </div>
+
+                {/* 1 cột: Thao tác */}
+                <div className="col-span-1 flex items-center justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 px-2 bg-white text-gray-700 hover:bg-gray-100"
+                    onClick={() => markRead(n.id, !n.is_read)}
+                  >
+                    {n.is_read ? "Chưa đọc" : "Đã đọc"}
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 px-2 bg-white text-red-600 hover:bg-red-100"
+                    onClick={() => removeNotification(n.id)}
+                  >
+                    Xóa
+                  </Button>
                 </div>
               </div>
             ))}

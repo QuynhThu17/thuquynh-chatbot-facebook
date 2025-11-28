@@ -22,6 +22,7 @@ import {
   deleteNotification,
   getSocialPages,
   getSocialPageById,
+  getDocuments,
   uploadAvatar,
   updateAvatar,
 } from "./api";
@@ -35,11 +36,11 @@ export function useAvatarInfoQuery() {
 }
 
 export function useBotsQuery() {
-  return useQuery({ queryKey: ["bots", "list"], queryFn: async () => (await getBots()).data, staleTime: 5 * 60 * 1000 });
+  return useQuery({ queryKey: ["bots", "list"], queryFn: async () => (await getBots()).data, staleTime: 5 * 60 * 1000, placeholderData: (prev) => prev });
 }
 
 export function useSocialAccountsQuery(socialId: string | number) {
-  return useQuery({ queryKey: ["social", "accounts", String(socialId)], queryFn: async () => (await getSocialAccounts(socialId)).data, staleTime: 5 * 60 * 1000 });
+  return useQuery({ queryKey: ["social", "accounts", String(socialId)], queryFn: async () => (await getSocialAccounts(socialId)).data, staleTime: 5 * 60 * 1000, placeholderData: (prev) => prev });
 }
 
 export function useActivateBotMutation() {
@@ -58,7 +59,7 @@ export function useDeleteBotMutation() {
 }
 
 export function useIdentitiesQuery() {
-  return useQuery({ queryKey: ["identities", "list"], queryFn: async () => (await getIdentities()).data });
+  return useQuery({ queryKey: ["identities", "list"], queryFn: async () => (await getIdentities()).data, placeholderData: (prev) => prev });
 }
 
 export function useCopyIdentityMutation() {
@@ -72,7 +73,7 @@ export function useDeleteIdentityMutation() {
 }
 
 export function useProceduresQuery() {
-  return useQuery({ queryKey: ["procedures", "list"], queryFn: async () => (await getProcedures()).data });
+  return useQuery({ queryKey: ["procedures", "list"], queryFn: async () => (await getProcedures()).data, placeholderData: (prev) => prev });
 }
 
 export function useUpdateProcedureMutation() {
@@ -126,7 +127,11 @@ export function useDeleteNotificationMutation() {
 }
 
 export function useSocialPagesQuery(social_id: string | number, account_id: string | number) {
-  return useQuery({ queryKey: ["social", "pages", String(social_id), String(account_id)], queryFn: async () => (await getSocialPages(social_id, account_id)).data });
+  return useQuery({ queryKey: ["social", "pages", String(social_id), String(account_id)], queryFn: async () => (await getSocialPages(social_id, account_id)).data, placeholderData: (prev) => prev });
+}
+
+export function useDocumentsQuery() {
+  return useQuery({ queryKey: ["documents", "list"], queryFn: async () => (await getDocuments()).data, placeholderData: (prev) => prev });
 }
 
 export function useUploadAvatarMutation() {

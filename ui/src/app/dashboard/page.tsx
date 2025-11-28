@@ -1,32 +1,28 @@
 "use client";
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import { StatCard } from '@/components/stat-card';
-import { getBots, getDocuments, getSocialAccounts, type Bot } from '@/lib/api';
+import { useBotsQuery, useIdentitiesQuery, useProceduresQuery, useDocumentsQuery, useSocialAccountsQuery } from '@/lib/queries';
+import type { Bot, Identity, Procedure, KnowledgeDocument, SocialAccount } from '@/lib/api';
 
 export default function DashboardPage() {
-  const [botsTotal, setBotsTotal] = useState(0);
-  const [botsActive, setBotsActive] = useState(0);
-  const [socialTotal, setSocialTotal] = useState(0);
-  const [knowledgeTotal, setKnowledgeTotal] = useState(0);
+  const botsQuery = useBotsQuery();
+  const identitiesQuery = useIdentitiesQuery();
+  const proceduresQuery = useProceduresQuery();
+  const documentsQuery = useDocumentsQuery();
+  const accountsQuery = useSocialAccountsQuery('s_facebook');
 
-  useEffect(() => {
-    const SOCIAL_ID = 's_facebook';
-    const load = async () => {
-      try {
-        const [botsRes, socialRes, docsRes] = await Promise.all([
-          getBots(),
-          getSocialAccounts(SOCIAL_ID),
-          getDocuments(),
-        ]);
-        const bots: Bot[] = botsRes?.data || [];
-        setBotsTotal(bots.length);
-        setBotsActive(bots.filter((b) => (b.status || '').toLowerCase() === 'active').length);
-        setSocialTotal((socialRes?.data || []).length);
-        setKnowledgeTotal((docsRes?.data || []).length);
-      } catch {}
-    };
-    load();
-  }, []);
+  const bots: Bot[] = (botsQuery.data as Bot[]) || [];
+  const identities: Identity[] = (identitiesQuery.data as Identity[]) || [];
+  const procedures: Procedure[] = (proceduresQuery.data as Procedure[]) || [];
+  const documents: KnowledgeDocument[] = (documentsQuery.data as KnowledgeDocument[]) || [];
+  const accounts: SocialAccount[] = (accountsQuery.data as SocialAccount[]) || [];
+
+  const botsTotal = bots.length;
+  const botsActive = useMemo(() => bots.filter((b) => (b.status || '').toLowerCase() === 'active').length, [bots]);
+  const socialTotal = accounts.length;
+  const knowledgeTotal = documents.length;
+  const identitiesTotal = identities.length;
+  const workflowTotal = procedures.length;
 
   return (
     <div>
@@ -34,9 +30,11 @@ export default function DashboardPage() {
       <p className="text-gray-500 mb-8">Real-time insights into your AI sales and customer engagement</p>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard title="Bots" total={botsTotal} active={botsActive} percentage={0} />
+        <StatCard title="Identities" total={identitiesTotal} percentage={0} />
+        <StatCard title="Workflow" total={workflowTotal} percentage={0} />
         <StatCard title="Social Accounts" total={socialTotal} percentage={0} />
         <StatCard title="Knowledge" total={knowledgeTotal} percentage={0} />
-        <StatCard title="Chat" total={0} percentage={0} />
+        <StatCard title="Chats" total={0} percentage={0} />
         <StatCard title="Feedback" total={0} percentage={0} />
       </div>
     </div>
