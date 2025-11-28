@@ -6,25 +6,28 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, AlertCircle, Search, MessageSquare, Bell, Reply, Trash2 } from "lucide-react";
 import Image from "next/image";
-import { 
-  getHistories, 
-  getHistorySessions, 
-  deleteHistorySession, 
-  getNotifications, 
-  markNotificationRead, 
-  markNotificationUnread, 
-  deleteNotification, 
+import {
+  getHistories,
+  getHistorySessions,
+  deleteHistorySession,
   getSocialPageById,
   type HistoryRecord,
   type SessionRecord,
-  type NotificationItem
+  type NotificationItem,
 } from "@/lib/api";
+import {
+  useHistoriesQuery,
+  useHistorySessionsQuery,
+  useNotificationsQuery,
+  useMarkNotificationReadMutation,
+  useMarkNotificationUnreadMutation,
+  useDeleteNotificationMutation,
+} from "@/lib/queries";
 
 type Tab = "histories" | "notifications";
 
 export default function HistoryPage() {
   const [tab, setTab] = useState<Tab>("histories");
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [search, setSearch] = useState("");
@@ -64,29 +67,28 @@ export default function HistoryPage() {
     return `${y} năm trước`;
   };
 
+  const historiesQuery = useHistoriesQuery({ social_page_id: pageFilter, bot_id: botFilter, limit: 50 });
+  const sessionsQuery = useHistorySessionsQuery();
+  const notificationsQuery = useNotificationsQuery();
+  const loading = tab === "histories" ? (historiesQuery.isLoading || sessionsQuery.isLoading) : notificationsQuery.isLoading;
+
   useEffect(() => {
-    setError(null);
-    setLoading(true);
-    const run = async () => {
-      try {
-        if (tab === "histories") {
-          const res = await getHistories({ social_page_id: pageFilter, bot_id: botFilter, limit: 50 });
-          setHistories(res?.data || []);
-          const sRes = await getHistorySessions({ limit: 20 });
-          setSessions(sRes?.data || []);
-        } else {
-          const nRes = await getNotifications({ limit: 50 });
-          setNotifications(nRes?.data || []);
-        }
-      } catch (e: unknown) {
-        const msg = e instanceof Error ? e.message : "Lỗi tải dữ liệu";
-        setError(msg);
-      } finally {
-        setLoading(false);
-      }
-    };
-    run();
-  }, [tab, pageFilter, botFilter]);
+    if (tab === "histories") {
+      const rows = historiesQuery.data as HistoryRecord[] | undefined;
+      const ses = sessionsQuery.data as SessionRecord[] | undefined;
+      if (Array.isArray(rows)) setHistories(rows);
+      if (Array.isArray(ses)) setSessions(ses);
+      const err = historiesQuery.error as any;
+      const err2 = sessionsQuery.error as any;
+      if (!error && (err || err2)) setError((err?.message || err2?.message) || "Lỗi tải dữ liệu");
+    } else {
+      const rows = notificationsQuery.data as NotificationItem[] | undefined;
+      if (Array.isArray(rows)) setNotifications(rows);
+      const err = notificationsQuery.error as any;
+      if (!error && err) setError(err?.message || "Lỗi tải dữ liệu");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, historiesQuery.data, historiesQuery.error, sessionsQuery.data, sessionsQuery.error, notificationsQuery.data, notificationsQuery.error]);
 
   const openChat = async (record: HistoryRecord) => {
     setActiveRecord(record);
@@ -147,10 +149,12 @@ export default function HistoryPage() {
     loadBySession();
   }, [activeSessionId, activeRecord]);
 
+  const markReadMutation = useMarkNotificationReadMutation();
+  const markUnreadMutation = useMarkNotificationUnreadMutation();
   const markRead = async (id: string | number, read: boolean) => {
     try {
-      if (read) await markNotificationRead(id);
-      else await markNotificationUnread(id);
+      if (read) await markReadMutation.mutateAsync(id);
+      else await markUnreadMutation.mutateAsync(id);
       setNotifications((prev) => prev.map((n) => (String(n.id) === String(id) ? { ...n, is_read: read } : n)));
     } catch {}
   };
@@ -162,9 +166,10 @@ export default function HistoryPage() {
     } catch {}
   };
 
+  const deleteNotifMutation = useDeleteNotificationMutation();
   const removeNotification = async (id: string | number) => {
     try {
-      await deleteNotification(id);
+      await deleteNotifMutation.mutateAsync(id);
       setNotifications((prev) => prev.filter((n) => String(n.id) !== String(id)));
     } catch {}
   };

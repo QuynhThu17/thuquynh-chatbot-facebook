@@ -18,7 +18,8 @@ import {
   AlertCircle,
   X,
 } from "lucide-react";
-import { type Identity, getIdentities, copyIdentity, deleteIdentity } from "@/lib/api";
+import { type Identity } from "@/lib/api";
+import { useIdentitiesQuery, useCopyIdentityMutation, useDeleteIdentityMutation } from "@/lib/queries";
 import { IdentityDetailsModal } from "@/components/identity-details-modal";
 import { CreateIdentityModal } from "@/components/create-identity-modal";
 
@@ -124,8 +125,9 @@ function IdentityCard({
 }
 
 export default function IdentityPage() {
+  const identitiesQuery = useIdentitiesQuery();
   const [identities, setIdentities] = useState<Identity[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const loading = identitiesQuery.isLoading && identities.length === 0;
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [selected, setSelected] = useState<Identity | null>(null);
@@ -137,24 +139,12 @@ export default function IdentityPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const res = await getIdentities();
-        if (res.success) {
-          setIdentities(res.data || []);
-        } else {
-          setError(res.message || "Không thể tải danh sách danh tính");
-        }
-      } catch (err: any) {
-        setError(err.message || "Lỗi kết nối máy chủ");
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, []);
+    const rows = identitiesQuery.data as Identity[] | undefined;
+    if (Array.isArray(rows)) setIdentities(rows);
+    const err = identitiesQuery.error as any;
+    if (err && !error) setError(err?.message || "Không thể tải danh sách danh tính");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [identitiesQuery.data, identitiesQuery.error]);
 
   const filtered = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
@@ -169,16 +159,13 @@ export default function IdentityPage() {
     [identities]
   );
 
+  const copyMutation = useCopyIdentityMutation();
   const onCopy = async (id: Identity["id"]) => {
     const actionKey = `copy-${id}`;
     setActionLoading(actionKey);
     try {
-      const res = await copyIdentity(id);
-      if (res?.success && res?.data) {
-        setIdentities((prev) => [res.data, ...prev]);
-      } else {
-        setError(res?.message || "Không thể sao chép danh tính");
-      }
+      const created = await copyMutation.mutateAsync(id);
+      if (created) setIdentities((prev) => [created, ...prev]);
     } catch (err: any) {
       setError(err?.message || "Không thể sao chép danh tính");
     } finally {
@@ -186,19 +173,15 @@ export default function IdentityPage() {
     }
   };
 
+  const deleteMutation = useDeleteIdentityMutation();
   const onDelete = async (id: Identity["id"]) => {
     const identity = identities.find(i => i.id === id);
     if (!confirm(`Bạn có chắc chắn muốn xóa danh tính "${identity?.title}"?`)) return;
-    
     const actionKey = `delete-${id}`;
     setActionLoading(actionKey);
     try {
-      const res = await deleteIdentity(id);
-      if (res?.success !== false) {
-        setIdentities((prev) => prev.filter((p) => p.id !== id));
-      } else {
-        setError(res?.message || "Không thể xóa danh tính");
-      }
+      await deleteMutation.mutateAsync(id);
+      setIdentities((prev) => prev.filter((p) => p.id !== id));
     } catch (err: any) {
       setError(err?.message || "Không thể xóa danh tính");
     } finally {

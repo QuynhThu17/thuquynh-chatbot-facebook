@@ -105,22 +105,25 @@ export function Sidebar() {
         <Link href="/bots/identity" className={getLinkClassName("/bots/identity")}>
           <IdentityIcon />
           Danh tính
+          <span className="ml-auto bg-pink-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full">15</span>
         </Link>
         
         <Link href="/bots/workflow" className={getLinkClassName("/bots/workflow")}>
           <WorkflowIcon />
           Quy trình
+          <span className="ml-auto bg-yellow-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full">15</span>
         </Link>
         
         <Link href="/bots/knowledge" className={getLinkClassName("/bots/knowledge")}>
           <KnowledgeIcon />
           Kiến thức
+          <span className="ml-auto bg-gray-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full">15</span>
         </Link>
         
         <Link href="/social" className={getLinkClassName("/social")}>
           <SocialIcon />
           Mạng xã hội
-          <span className="ml-auto bg-yellow-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full">6</span>
+          <span className="ml-auto bg-blue-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full">6</span>
         </Link>
         
         <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider pt-4">Quản lý Lịch sử</h2>

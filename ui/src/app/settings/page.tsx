@@ -5,14 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Upload, Loader2, AlertCircle } from "lucide-react";
-import {
-  getCurrentUser,
-  getAvatarInfo,
-  uploadAvatar,
-  updateAvatar
-} from "@/lib/api";
+import { useCurrentUserQuery, useAvatarInfoQuery, useUploadAvatarMutation, useUpdateAvatarMutation } from "@/lib/queries";
 
 export default function SettingsPage() {
+  const userQuery = useCurrentUserQuery();
+  const avatarQuery = useAvatarInfoQuery();
+  const uploadMutation = useUploadAvatarMutation();
+  const updateMutation = useUpdateAvatarMutation();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
 
@@ -40,37 +39,17 @@ export default function SettingsPage() {
   // ===================================================
 
   useEffect(() => {
-    let mounted = true;
-
-    (async () => {
-      try {
-        const u = await getCurrentUser();
-        type GetUserResponse = { data?: { name?: string; email?: string } };
-        const d = (u as GetUserResponse)?.data || {};
-
-        if (mounted) {
-          setName(d.name || "");
-          setEmail(d.email || "");
-        }
-      } catch {}
-
-      try {
-        const a = await getAvatarInfo();
-        type AvatarInfoResponse = { data?: { avatar_url?: string; url?: string }, avatar_url?: string; url?: string };
-        const ai = a as AvatarInfoResponse;
-        const raw = ai?.data?.avatar_url || ai?.data?.url || ai?.avatar_url || ai?.url;
-
-        if (mounted && raw) {
-          const finalUrl = normalizeUrl(raw);
-          setAvatarUrl(addTs(finalUrl));
-        }
-      } catch {}
-    })();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
+    const du = (userQuery.data as any) || {};
+    setName(du?.name || "");
+    setEmail(du?.email || "");
+    const ai = (avatarQuery.data as any) || {};
+    const raw = ai?.avatar_url || ai?.url;
+    if (raw) {
+      const finalUrl = normalizeUrl(raw);
+      setAvatarUrl(addTs(finalUrl));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userQuery.data, avatarQuery.data]);
 
   // ===================================================
   // FORM HELPERS
@@ -102,10 +81,9 @@ export default function SettingsPage() {
     setError(null);
 
     try {
-      const res = await uploadAvatar(file);
-      type UploadAvatarResponse = { data?: { avatar_url?: string; url?: string }, avatar_url?: string; url?: string };
-      const ur = res as UploadAvatarResponse;
-      const raw = ur?.data?.avatar_url || ur?.data?.url || ur?.avatar_url || ur?.url;
+      const res = await uploadMutation.mutateAsync(file);
+      const ur = res as any;
+      const raw = ur?.avatar_url || ur?.url;
 
       if (!raw) {
         setError("API không trả về URL hợp lệ");
@@ -141,10 +119,8 @@ export default function SettingsPage() {
 
     try {
       const clean = pendingUrl.split("?")[0];
-      const res = await updateAvatar(clean);
-
-      if (res?.success !== false) {
-        // cập nhật avatar ngay, chống cache
+      const res = await updateMutation.mutateAsync(clean);
+      if (res) {
         setAvatarUrl(addTs(clean));
         setPendingUrl(undefined);
       }

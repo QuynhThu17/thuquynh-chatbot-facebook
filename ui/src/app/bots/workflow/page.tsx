@@ -19,7 +19,8 @@ import {
   Loader2,
   AlertCircle,
 } from "lucide-react";
-import { type Procedure, getProcedures, updateProcedure, deleteProcedure, copyProcedure } from "@/lib/api";
+import { type Procedure } from "@/lib/api";
+import { useProceduresQuery, useUpdateProcedureMutation, useCopyProcedureMutation, useDeleteProcedureMutation } from "@/lib/queries";
 import { WorkflowDetailsModal } from "@/components/workflow-details-modal";
 import { CreateProcedureModal } from "@/components/create-procedure-modal";
 
@@ -177,8 +178,9 @@ function WorkflowCard({
 }
 
 export default function WorkflowPage() {
+  const proceduresQuery = useProceduresQuery();
   const [procedures, setProcedures] = useState<Procedure[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const loading = proceduresQuery.isLoading && procedures.length === 0;
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [editing, setEditing] = useState<{ id: Procedure["id"] | null; title: string; description: string }>({ 
@@ -193,24 +195,12 @@ export default function WorkflowPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const res = await getProcedures();
-        if (res.success) {
-          setProcedures(res.data || []);
-        } else {
-          setError(res.message || "Không thể tải danh sách quy trình");
-        }
-      } catch (err: any) {
-        setError(err.message || "Lỗi kết nối máy chủ");
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, []);
+    const rows = proceduresQuery.data as Procedure[] | undefined;
+    if (Array.isArray(rows)) setProcedures(rows);
+    const err = proceduresQuery.error as any;
+    if (err && !error) setError(err?.message || "Không thể tải danh sách quy trình");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [proceduresQuery.data, proceduresQuery.error]);
 
   const filtered = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
@@ -220,6 +210,7 @@ export default function WorkflowPage() {
     );
   }, [procedures, searchTerm]);
 
+  const updateMutation = useUpdateProcedureMutation();
   const onSave = async (id: Procedure["id"], title: string, description: string) => {
     if (!title.trim()) {
       setError("Vui lòng nhập tên quy trình");
@@ -229,14 +220,10 @@ export default function WorkflowPage() {
     const actionKey = `save-${id}`;
     setActionLoading(actionKey);
     try {
-      const res = await updateProcedure(id, { title, description });
-      if (res?.success && res?.data) {
-        setProcedures((prev) => prev.map((p) => 
-          p.id === id ? { ...p, title: res.data.title, description: res.data.description } : p
-        ));
+      const updated = await updateMutation.mutateAsync({ id, title, description });
+      if (updated) {
+        setProcedures((prev) => prev.map((p) => p.id === id ? { ...p, title: updated.title, description: updated.description } : p));
         setEditing({ id: null, title: "", description: "" });
-      } else {
-        setError(res?.message || "Không thể cập nhật quy trình");
       }
     } catch (err: any) {
       setError(err?.message || "Không thể cập nhật quy trình");
@@ -245,16 +232,13 @@ export default function WorkflowPage() {
     }
   };
 
+  const copyMutation = useCopyProcedureMutation();
   const onCopy = async (id: Procedure["id"]) => {
     const actionKey = `copy-${id}`;
     setActionLoading(actionKey);
     try {
-      const res = await copyProcedure(id);
-      if (res?.success && res?.data) {
-        setProcedures((prev) => [res.data, ...prev]);
-      } else {
-        setError(res?.message || "Không thể sao chép quy trình");
-      }
+      const created = await copyMutation.mutateAsync(id);
+      if (created) setProcedures((prev) => [created, ...prev]);
     } catch (err: any) {
       setError(err?.message || "Không thể sao chép quy trình");
     } finally {
@@ -262,6 +246,7 @@ export default function WorkflowPage() {
     }
   };
 
+  const deleteMutation = useDeleteProcedureMutation();
   const onDelete = async (id: Procedure["id"]) => {
     const workflow = procedures.find(p => p.id === id);
     if (!confirm(`Bạn có chắc chắn muốn xóa quy trình "${workflow?.title}"?`)) return;
@@ -269,13 +254,9 @@ export default function WorkflowPage() {
     const actionKey = `delete-${id}`;
     setActionLoading(actionKey);
     try {
-      const res = await deleteProcedure(id);
-      if (res?.success !== false) {
-        setProcedures((prev) => prev.filter((p) => p.id !== id));
-        if (editing.id === id) setEditing({ id: null, title: "", description: "" });
-      } else {
-        setError(res?.message || "Không thể xóa quy trình");
-      }
+      await deleteMutation.mutateAsync(id);
+      setProcedures((prev) => prev.filter((p) => p.id !== id));
+      if (editing.id === id) setEditing({ id: null, title: "", description: "" });
     } catch (err: any) {
       setError(err?.message || "Không thể xóa quy trình");
     } finally {

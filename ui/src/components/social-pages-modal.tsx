@@ -2,12 +2,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getSocialPages, type SocialPage, getBots, type Bot, connectBotToSocial, disconnectBotFromSocial } from "@/lib/api";
+import { type SocialPage, getBots, type Bot, connectBotToSocial, disconnectBotFromSocial } from "@/lib/api";
+import { useSocialPagesQuery } from "@/lib/queries";
 import { RefreshCcw } from "lucide-react";
 
 export function SocialPagesModal({ open, onClose, socialId, accountId }: { open: boolean; onClose: () => void; socialId: string; accountId: string }) {
   const [pages, setPages] = useState<SocialPage[]>([]);
-  const [loading, setLoading] = useState(false);
+  const pagesQuery = useSocialPagesQuery(socialId, accountId);
+  const loading = pagesQuery.isLoading && pages.length === 0;
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectOpen, setSelectOpen] = useState(false);
@@ -21,22 +23,11 @@ export function SocialPagesModal({ open, onClose, socialId, accountId }: { open:
     if (!open) return;
     setError(null);
     setSearchTerm("");
-    setPages([]);
-    loadPages();
-  }, [open, socialId, accountId]);
+    const rows = pagesQuery.data as SocialPage[] | undefined;
+    if (Array.isArray(rows)) setPages(rows);
+  }, [open, pagesQuery.data]);
 
-  const loadPages = async () => {
-    try {
-      setLoading(true);
-      const res = await getSocialPages(socialId, accountId);
-      setPages(res.data || []);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Không thể tải trang";
-      setError(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const reload = async () => { await pagesQuery.refetch(); };
 
   const filtered = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
@@ -71,7 +62,7 @@ export function SocialPagesModal({ open, onClose, socialId, accountId }: { open:
     try {
       setConnecting(true);
       await connectBotToSocial(selectedBotId, { social_id: socialId, social_page_id: selectedPage.id });
-      await loadPages();
+      await reload();
       setSelectOpen(false);
       setSelectedPage(null);
     } catch (e) {
@@ -119,7 +110,7 @@ export function SocialPagesModal({ open, onClose, socialId, accountId }: { open:
         return;
       }
       await disconnectBotFromSocial(botId, page.id);
-      await loadPages();
+      await reload();
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Ngắt kết nối thất bại";
       setError(msg);
@@ -137,7 +128,7 @@ export function SocialPagesModal({ open, onClose, socialId, accountId }: { open:
         <div className="relative w-full max-w-3xl bg-white rounded-xl border shadow-xl" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center justify-between p-6 border-b">
             <div className="flex items-center gap-2"><span className="font-semibold">Trang Facebook</span></div>
-            <Button variant="outline" size="sm" className="bg-white" onClick={loadPages}><RefreshCcw className="w-4 h-4 mr-2" />Tải lại</Button>
+            <Button variant="outline" size="sm" className="bg-white" onClick={reload}><RefreshCcw className="w-4 h-4 mr-2" />Tải lại</Button>
           </div>
           <div className="p-6 space-y-4">
             <Input placeholder="Tìm kiếm trang..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
