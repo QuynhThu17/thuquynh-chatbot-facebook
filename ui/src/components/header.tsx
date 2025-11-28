@@ -1,38 +1,19 @@
 "use client";
 import { Bell, MessageSquare, Search, ChevronDown, LogOut, Settings } from 'lucide-react';
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
-import { getCurrentUser, logout, getAvatarInfo } from '@/lib/api';
+import { useState } from 'react';
+import { logout } from '@/lib/api';
+import { useCurrentUserQuery, useAvatarInfoQuery } from '@/lib/queries';
 
 export function Header() {
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState<string>('');
-  const [role, setRole] = useState<string>('');
-  const [email, setEmail] = useState<string>('');
-  const [avatarUrl, setAvatarUrl] = useState<string | undefined>(undefined);
-
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const u = await getCurrentUser();
-        const d = (u as any)?.data || {};
-        if (mounted) {
-          setName(d.name || d.username || d.full_name || 'User');
-          setRole(d.role || d.user_role || d.type || 'user');
-          setEmail(d.email || '');
-        }
-      } catch {}
-      try {
-        const a = await getAvatarInfo();
-        const url = (a as any)?.data?.avatar_url || (a as any)?.data?.url;
-        if (mounted && url) setAvatarUrl(url);
-      } catch {}
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  const u = useCurrentUserQuery();
+  const a = useAvatarInfoQuery();
+  const d = (u.data as any) || {};
+  const name = d.name || d.username || d.full_name || 'User';
+  const role = d.role || d.user_role || d.type || '';
+  const email = d.email || '';
+  const avatarUrl = ((a.data as any)?.avatar_url || (a.data as any)?.url) as string | undefined;
 
   function initials(text: string) {
     const s = (text || '').trim();

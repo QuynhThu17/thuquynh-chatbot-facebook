@@ -1,7 +1,7 @@
 "use client";
 
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { 
   Share2, 
   Zap, 
@@ -16,7 +16,8 @@ import {
   ExternalLink,
   Plus
 } from 'lucide-react';
-import { connectSocial, getSocialAccounts, type SocialAccount } from '@/lib/api';
+import { connectSocial, type SocialAccount } from '@/lib/api';
+import { useSocialAccountsQuery } from '@/lib/queries';
 import { SocialPagesModal } from '@/components/social-pages-modal';
 import { Button } from '@/components/ui/button';
 
@@ -27,11 +28,12 @@ const SocialPage = () => {
   const [step2Done, setStep2Done] = useState(false);
   const [step3Done, setStep3Done] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [accounts, setAccounts] = useState<SocialAccount[]>([]);
+  const accountsQuery = useSocialAccountsQuery("s_facebook");
+  const accounts = (accountsQuery.data as SocialAccount[]) || [];
   const [showAccountsView, setShowAccountsView] = useState(false);
   const [pagesOpen, setPagesOpen] = useState(false);
   const [activeAccountId, setActiveAccountId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const loading = accountsQuery.isLoading;
 
   const SOCIAL_ID = "s_facebook";
 
@@ -49,8 +51,7 @@ const SocialPage = () => {
         window.open(authUrl, "_blank", "noopener,noreferrer");
       }
       setStep2Done(true);
-      const accRes = await getSocialAccounts(SOCIAL_ID);
-      setAccounts(accRes.data || []);
+      await accountsQuery.refetch();
       setStep3Done(true);
       setIsModalOpen(false);
       setShowAccountsView(true);
@@ -68,15 +69,11 @@ const SocialPage = () => {
 
   async function loadAccounts() {
     try {
-      setLoading(true);
-      const accRes = await getSocialAccounts(SOCIAL_ID);
-      setAccounts(accRes.data || []);
       setErrorMsg(null);
+      await accountsQuery.refetch();
     } catch (err) {
       const msg = (err as any)?.message || "Không thể tải danh sách tài khoản";
       setErrorMsg(msg);
-    } finally {
-      setLoading(false);
     }
   }
 
@@ -92,15 +89,7 @@ const SocialPage = () => {
     if (!isConnecting) setIsModalOpen(false);
   }
 
-  useEffect(() => {
-    if (showAccountsView && accounts.length === 0) {
-      loadAccounts();
-    }
-  }, [showAccountsView]);
-
-  useEffect(() => {
-    loadAccounts().catch(() => {});
-  }, []);
+  
 
   const activePlatforms = accounts.length > 0 ? 1 : 0;
 

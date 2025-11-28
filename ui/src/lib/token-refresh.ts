@@ -6,7 +6,7 @@ import {
 } from "./auth-storage";
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:1975/api/v1").replace(/\/$/, "");
-async function requestRefresh(refresh_token: string): Promise<any> {
+async function requestRefresh(refresh_token: string): Promise<unknown> {
   const res = await fetch(`${API_BASE}/auth/refresh`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -31,7 +31,7 @@ class TokenRefreshManager {
     reject: (error: Error) => void;
   }> = [];
   private monitoringInterval: NodeJS.Timeout | null = null;
-  private eventListeners: Map<string, Array<(...args: any[]) => void>> = new Map();
+  private eventListeners: Map<string, Array<(...args: unknown[]) => void>> = new Map();
 
   async refreshAccessToken(): Promise<string> {
     if (this.isRefreshing) {
@@ -51,14 +51,22 @@ class TokenRefreshManager {
     try {
       const response = await requestRefresh(refreshTokenValue);
 
-      const pick = (obj: any): string | undefined => {
+      const pick = (obj: unknown): string | undefined => {
+        if (typeof obj !== "object" || obj === null) return undefined;
+        const o = obj as {
+          access_token?: unknown;
+          token?: unknown;
+          data?: { access_token?: unknown; token?: unknown };
+          result?: { access_token?: unknown };
+          payload?: { access_token?: unknown };
+        };
         const cands = [
-          obj?.access_token,
-          obj?.token,
-          obj?.data?.access_token,
-          obj?.data?.token,
-          obj?.result?.access_token,
-          obj?.payload?.access_token,
+          o.access_token,
+          o.token,
+          o.data?.access_token,
+          o.data?.token,
+          o.result?.access_token,
+          o.payload?.access_token,
         ];
         for (const v of cands) {
           if (typeof v === "string" && v) return v;
@@ -144,14 +152,14 @@ class TokenRefreshManager {
     }
   }
 
-  on(event: string, callback: (...args: any[]) => void): void {
+  on(event: string, callback: (...args: unknown[]) => void): void {
     if (!this.eventListeners.has(event)) {
       this.eventListeners.set(event, []);
     }
     this.eventListeners.get(event)!.push(callback);
   }
 
-  off(event: string, callback: (...args: any[]) => void): void {
+  off(event: string, callback: (...args: unknown[]) => void): void {
     const listeners = this.eventListeners.get(event);
     if (listeners) {
       const index = listeners.indexOf(callback);
@@ -161,7 +169,7 @@ class TokenRefreshManager {
     }
   }
 
-  private emit(event: string, ...args: any[]): void {
+  private emit(event: string, ...args: unknown[]): void {
     const listeners = this.eventListeners.get(event);
     if (listeners) {
       listeners.forEach(callback => callback(...args));

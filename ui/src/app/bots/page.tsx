@@ -3,17 +3,16 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { getBots, type Bot, deleteBot, activateBot, deactivateBot } from "@/lib/api";
+import { type Bot } from "@/lib/api";
+import { useBotsQuery, useDeleteBotMutation, useActivateBotMutation, useDeactivateBotMutation } from "@/lib/queries";
 import { Loader2, AlertCircle, Eye, Rocket, Trash2, Grid3x3, List, Play, Square, Plus, MoreVertical, BookOpen } from "lucide-react";
 import { BotDetailsModal } from "@/components/bot-details-modal";
 import { DeployBotModal } from "@/components/deploy-bot-modal";
 
 export default function BotsPage() {
   const router = useRouter();
-  const [bots, setBots] = useState<Bot[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -25,26 +24,13 @@ export default function BotsPage() {
   const [isDeployOpen, setIsDeployOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchBots();
-  }, []);
+  const botsQuery = useBotsQuery();
+  const bots = (botsQuery.data as Bot[]) || [];
+  const loading = botsQuery.isLoading;
 
-  const fetchBots = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await getBots();
-      if (response.success) {
-        setBots(response.data);
-      } else {
-        setError(response.message || "Không thể tải danh sách bot");
-      }
-    } catch (err: any) {
-      setError(err.message || "Lỗi kết nối đến máy chủ");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const actMut = useActivateBotMutation();
+  const deactMut = useDeactivateBotMutation();
+  const delMut = useDeleteBotMutation();
 
   const handleToggleStatus = async (bot: Bot) => {
     const statusStr = String(bot.status || "").toLowerCase();
@@ -53,16 +39,7 @@ export default function BotsPage() {
     
     try {
       setActionLoading(actionKey);
-      const res = isActive ? await deactivateBot(bot.id) : await activateBot(bot.id);
-      
-      if (res?.success !== false) {
-        const latest = await getBots();
-        if (latest.success) {
-          setBots(latest.data);
-        }
-      } else {
-        setError(res?.message || (isActive ? "Không thể tắt bot" : "Không thể bật bot"));
-      }
+      if (isActive) await deactMut.mutateAsync(bot.id); else await actMut.mutateAsync(bot.id);
     } catch (err: any) {
       setError(err?.message || (isActive ? "Không thể tắt bot" : "Không thể bật bot"));
     } finally {
@@ -76,13 +53,7 @@ export default function BotsPage() {
     const actionKey = `delete-${bot.id}`;
     try {
       setActionLoading(actionKey);
-      const res = await deleteBot(bot.id);
-      
-      if (res?.success !== false) {
-        setBots((prev) => prev.filter((b) => b.id !== bot.id));
-      } else {
-        setError(res?.message || "Không thể xóa bot");
-      }
+      await delMut.mutateAsync(bot.id);
     } catch (err: any) {
       setError(err?.message || "Không thể xóa bot");
     } finally {
