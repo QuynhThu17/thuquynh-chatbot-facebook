@@ -279,14 +279,14 @@ class AuthService:
                 <div class="card">
                     <div class="header">
                         <span class="logo-dot"></span>
-                        <span>MekongAI</span>
+                        <span>HUEAI</span>
                     </div>
                     <h1 class="title">{title}</h1>
                     {subtitle_section}
                     <div class="content">
                         {content}
                     </div>
-                    <p class="footer">&copy; {current_year} MekongAI. All rights reserved.</p>
+                    <p class="footer">&copy; {current_year} HUEAI. All rights reserved.</p>
                 </div>
             </div>
         </body>
@@ -352,23 +352,23 @@ class AuthService:
     async def send_verification_email(self, email: str, verification_code: str) -> bool:
         """Send verification email with HTML styling and fallback text."""
         try:
-            subject = "Verify Your Email - MekongAI"
+            subject = "Verify Your Email - HUEAI"
             expiry_minutes = max(1, (VERIFICATION_TIMEOUT + 59) // 60)
             minute_suffix = "s" if expiry_minutes != 1 else ""
 
             text_body = (
                 "Hello,\n\n"
-                "Thank you for signing up with MekongAI!\n\n"
+                "Thank you for signing up with HUEAI!\n\n"
                 f"Your email verification code is: {verification_code}\n\n"
                 f"The code expires in {expiry_minutes} minute{minute_suffix}.\n\n"
                 "If you didn't create an account with us, please ignore this email.\n\n"
                 "Best regards,\n"
-                "MekongAI Team"
+                "HUEAI Team"
             )
 
             content_html = f"""
 <p class="greeting">Hello,</p>
-<p>Thanks for joining MekongAI. Use the code below to verify your email address.</p>
+<p>Thanks for joining HUEAI. Use the code below to verify your email address.</p>
 <div class="code-wrapper">
     <span class="code-label">Verification Code</span>
     <div class="code">{verification_code}</div>
@@ -379,7 +379,7 @@ class AuthService:
 
             html_body = self._build_email_html(
                 title="Verify Your Email",
-                subtitle="Confirm your address to activate your MekongAI account.",
+                subtitle="Confirm your address to activate your HUEAI account.",
                 content=content_html,
             )
 
