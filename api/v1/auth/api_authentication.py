@@ -207,14 +207,18 @@ async def register(
         
         # Xác thực email verification code trước khi cho phép đăng ký
         if register_data.method == "email_password":
-            # Yêu cầu verification code cho email registration
+            normalized_email = register_data.email.strip()
+            normalized_code = str(register_data.verification_code).strip()
+
             is_verified = await factory.email_verification_manager.verify_code(
-                register_data.email,
-                register_data.verification_code
+                normalized_email,
+                normalized_code
             )
             
             if not is_verified:
-                raise HTTPException(status_code=400, detail="Invalid or expired verification code")
+                already_verified = await factory.email_verification_manager.is_email_verified(normalized_email)
+                if not already_verified:
+                    raise HTTPException(status_code=400, detail="Invalid or expired verification code")
         
         # Xử lý password dựa trên method
         hashed_password = None

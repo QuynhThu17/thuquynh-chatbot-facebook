@@ -136,7 +136,7 @@ export async function verifyEmail(email: string, code: string): Promise<{ succes
   const res = await fetch(url("/auth/verify-email"), {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({ email, code }),
+    body: JSON.stringify({ email, verification_code: code.trim() }),
   });
   return handle(res);
 }
