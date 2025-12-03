@@ -64,18 +64,18 @@ export async function login(payload: LoginPayload): Promise<LoginResponse> {
   return data;
 }
 
-export async function register(data: { name: string; email: string; password: string }): Promise<{ success: boolean; message?: string; data?: { access_token: string; refresh_token: string } }> {
+export async function register(data: RegisterPayload): Promise<RegisterResponse> {
   const res = await apiFetch("/auth/register", {
     method: "POST",
     body: JSON.stringify(data),
   });
   
-  const result = await handle<{ success: boolean; message?: string; data?: { access_token: string; refresh_token: string } }>(res);
+  const result = await handle<RegisterResponse>(res);
   
-  if (result.success && result.data?.access_token && result.data?.refresh_token) {
+  if (result.success && result.tokens?.access_token && result.tokens?.refresh_token) {
     saveTokens({
-      access_token: result.data.access_token,
-      refresh_token: result.data.refresh_token,
+      access_token: result.tokens.access_token,
+      refresh_token: result.tokens.refresh_token,
       token_type: "Bearer",
       persist: false
     });
