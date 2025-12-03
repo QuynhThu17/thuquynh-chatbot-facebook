@@ -55,7 +55,8 @@ export function UploadDocumentModal({ open, onClose, onUploaded }: UploadDocumen
     try {
       setLoading(true);
       setError(null);
-      const res = await uploadDocument({ file, title: title.trim(), company: company || undefined });
+      const companyId = /^[a-f0-9]{24}$/i.test(company) ? company : undefined;
+      const res = await uploadDocument({ file, title: title.trim(), company_id: companyId, process_images: false, parser_engine: "ragflow" });
       if ((res as any)?.success && res.data) {
         onUploaded(res.data);
         onClose();
@@ -65,7 +66,14 @@ export function UploadDocumentModal({ open, onClose, onUploaded }: UploadDocumen
         setFile(null);
       }
     } catch (err: any) {
-      setError(err.message || "Tải lên thất bại");
+      const msg = err?.message || "Tải lên thất bại";
+      if ((err?.status ?? String(msg)).toString().includes("403")) {
+        setError("Bạn đã vượt giới hạn gói hoặc không có quyền với công ty đã chọn. Vui lòng bỏ chọn công ty hoặc nâng gói.");
+      } else if ((err?.status ?? String(msg)).toString().includes("400")) {
+        setError(msg);
+      } else {
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -93,19 +101,19 @@ export function UploadDocumentModal({ open, onClose, onUploaded }: UploadDocumen
               <label className="text-sm font-medium">Tên tài liệu <span className="text-red-500">*</span></label>
               <Input placeholder="Nhập tên tài liệu" value={title} onChange={(e) => setTitle(e.target.value)} className="bg-white" />
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Công ty</label>
+            {/* <div className="space-y-2">
+              <label className="text-black font-medium">Công ty</label>
               <Select value={company} onValueChange={(v) => setCompany(v === "none" ? "" : v)}>
                 <SelectTrigger className="bg-white">
                   <SelectValue placeholder="Chọn công ty" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="text-black">
                   <SelectItem value="none">Không chọn</SelectItem>
-                  <SelectItem value="company_a">Company A</SelectItem>
+                  <SelectItem value="company_a">HUEAI</SelectItem>
                   <SelectItem value="company_b">Company B</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
+            </div> */}
             <div className="space-y-2">
               <label className="text-sm font-medium">Tệp <span className="text-red-500">*</span></label>
               <input

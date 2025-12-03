@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/lib/auth-provider";
 import RouteGuard from "@/lib/route-guard";
 import { ErrorBoundary } from "@/components/error-boundary";
+import QueryProvider from "@/lib/query-provider";
 
 // Temporarily comment out fonts due to connection issues
 // const geistSans = Geist({
@@ -29,13 +30,15 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
-        <AuthProvider>
-          <RouteGuard>
-            <ErrorBoundary>
-              {children}
-            </ErrorBoundary>
-          </RouteGuard>
-        </AuthProvider>
+        <QueryProvider>
+          <AuthProvider>
+            <RouteGuard>
+              <ErrorBoundary>
+                {children}
+              </ErrorBoundary>
+            </RouteGuard>
+          </AuthProvider>
+        </QueryProvider>
       </body>
     </html>
   );

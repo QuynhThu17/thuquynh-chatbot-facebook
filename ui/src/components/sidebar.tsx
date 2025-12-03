@@ -3,6 +3,9 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { BarChart3 } from "lucide-react";
+import { useBotsQuery, useIdentitiesQuery, useProceduresQuery, useDocumentsQuery, useSocialAccountsQuery, useHistorySessionsQuery } from '@/lib/queries';
+import type { Bot, Identity, Procedure, KnowledgeDocument, SocialAccount, SessionRecord } from '@/lib/api';
 
 // SVG Icons
 const DashboardIcon = ({ className = "w-5 h-5 mr-3" }) => (
@@ -62,6 +65,19 @@ const HelpIcon = ({ className = "w-5 h-5 mr-3" }) => (
 
 export function Sidebar() {
   const pathname = usePathname();
+  const botsQuery = useBotsQuery();
+  const identitiesQuery = useIdentitiesQuery();
+  const proceduresQuery = useProceduresQuery();
+  const documentsQuery = useDocumentsQuery();
+  const socialAccountsQuery = useSocialAccountsQuery('s_facebook');
+  const sessionsQuery = useHistorySessionsQuery();
+
+  const bots: Bot[] = botsQuery.data || [];
+  const identities: Identity[] = identitiesQuery.data || [];
+  const procedures: Procedure[] = proceduresQuery.data || [];
+  const documents: KnowledgeDocument[] = documentsQuery.data || [];
+  const accounts: SocialAccount[] = socialAccountsQuery.data || [];
+  const sessions: SessionRecord[] = sessionsQuery.data || [];
 
   const isActive = (href: string) => {
     if (href === '/') {
@@ -83,12 +99,12 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="w-64 bg-gray-50 border-r border-gray-200 flex flex-col">
+    <aside className="w-64 bg-gray-50 border-r border-gray-200 flex flex-col sticky top-0 h-screen">
       <div className="h-24 flex items-center justify-center border-b border-gray-200">
         <Image src="/logoHUR.jpg" alt="HUEAI Logo" width={60} height={60} />
         <h1 className="text-xl font-bold ml-4">HUEAI</h1>
       </div>
-      <nav className="flex-1 p-4 space-y-2">
+      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
         <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tổng quan</h2>
         <Link href="/dashboard" className={getLinkClassName("/dashboard")}>
           <DashboardIcon />
@@ -99,35 +115,43 @@ export function Sidebar() {
         <Link href="/bots" className={getLinkClassName("/bots")}>
           <BotIcon />
           AI Bots
-          <span className="ml-auto bg-green-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full">15</span>
+          <span className="ml-auto bg-green-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full">{bots.length}</span>
         </Link>
         
         <Link href="/bots/identity" className={getLinkClassName("/bots/identity")}>
           <IdentityIcon />
           Danh tính
+          <span className="ml-auto bg-pink-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full">{identities.length}</span>
         </Link>
         
         <Link href="/bots/workflow" className={getLinkClassName("/bots/workflow")}>
           <WorkflowIcon />
           Quy trình
+          <span className="ml-auto bg-yellow-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full">{procedures.length}</span>
         </Link>
         
         <Link href="/bots/knowledge" className={getLinkClassName("/bots/knowledge")}>
           <KnowledgeIcon />
           Kiến thức
+          <span className="ml-auto bg-gray-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full">{documents.length}</span>
         </Link>
         
         <Link href="/social" className={getLinkClassName("/social")}>
           <SocialIcon />
           Mạng xã hội
-          <span className="ml-auto bg-yellow-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full">6</span>
+          <span className="ml-auto bg-blue-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full">{accounts.length}</span>
         </Link>
         
         <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider pt-4">Quản lý Lịch sử</h2>
         <Link href="/history" className={getLinkClassName("/history")}>
           <HistoryIcon />
           Lịch sử
-          <span className="ml-auto bg-red-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full">847</span>
+          <span className="ml-auto bg-red-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full">{sessions.length}</span>
+        </Link>
+
+        <Link href="/statistics" className={getLinkClassName("/statistics")}>
+          <BarChart3 className="w-5 h-5 mr-3" />
+          Thống kê
         </Link>
         
         <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider pt-4">Hệ thống</h2>
@@ -136,7 +160,7 @@ export function Sidebar() {
           Cài đặt
         </Link>
         
-        <Link href="/help" className={getLinkClassName("/help")}>
+        <Link href="#" className={getLinkClassName("/help")}>
           <HelpIcon />
           Trợ giúp & Hỗ trợ
         </Link>

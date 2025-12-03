@@ -16,6 +16,7 @@ from api.v1.additional_features.api_additional_features import router as additio
 from api.v1.dashboard.api_dashboard import router as dashboard_router
 from api.v1.auth.api_authentication import router as auth_router
 from api.v1.business.api_business_managerment import router as business_router
+from api.v1.statistics.api_statistics import router as statistics_router
 
 # Main V1 API Router
 v1_router = APIRouter(prefix="/v1")
@@ -32,6 +33,7 @@ v1_router.include_router(business_router)  # Đã bao gồm Product Enhanced end
 v1_router.include_router(crm_router)
 v1_router.include_router(dashboard_router)
 v1_router.include_router(system_router)
+v1_router.include_router(statistics_router)
 # v1_router.include_router(additional_router)
 
 # Health check endpoint

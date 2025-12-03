@@ -1,38 +1,19 @@
 "use client";
 import { Bell, MessageSquare, Search, ChevronDown, LogOut, Settings } from 'lucide-react';
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
-import { getCurrentUser, logout, getAvatarInfo } from '@/lib/api';
+import { useState } from 'react';
+import { logout } from '@/lib/api';
+import { useCurrentUserQuery, useAvatarInfoQuery } from '@/lib/queries';
 
 export function Header() {
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState<string>('');
-  const [role, setRole] = useState<string>('');
-  const [email, setEmail] = useState<string>('');
-  const [avatarUrl, setAvatarUrl] = useState<string | undefined>(undefined);
-
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const u = await getCurrentUser();
-        const d = (u as any)?.data || {};
-        if (mounted) {
-          setName(d.name || d.username || d.full_name || 'User');
-          setRole(d.role || d.user_role || d.type || 'user');
-          setEmail(d.email || '');
-        }
-      } catch {}
-      try {
-        const a = await getAvatarInfo();
-        const url = (a as any)?.data?.avatar_url || (a as any)?.data?.url;
-        if (mounted && url) setAvatarUrl(url);
-      } catch {}
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  const u = useCurrentUserQuery();
+  const a = useAvatarInfoQuery();
+  const d = (u.data as any) || {};
+  const name = d.name || d.username || d.full_name || 'User';
+  const role = d.role || d.user_role || d.type || '';
+  const email = d.email || '';
+  const avatarUrl = ((a.data as any)?.avatar_url || (a.data as any)?.url) as string | undefined;
 
   function initials(text: string) {
     const s = (text || '').trim();
@@ -64,31 +45,37 @@ export function Header() {
         </button>
         <button onClick={() => setOpen(v => !v)} className="p-2 rounded-full hover:bg-gray-100 flex items-center space-x-2">
           {avatarUrl ? (
-            <Image src={avatarUrl} alt={name} width={28} height={28} className="rounded-full" unoptimized />
+            <Image src={avatarUrl} alt={name} width={58} height={58} className="rounded-full" unoptimized />
           ) : (
             <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center">
               <span className="text-xs font-semibold text-gray-700">{initials(name)}</span>
             </div>
           )}
           <div className="hidden md:block text-left">
-            <div className="text-sm font-medium leading-tight max-w-[140px] truncate">{name || 'User'}</div>
             {role && <div className="text-xs text-gray-500">{role}</div>}
           </div>
           <ChevronDown className="w-4 h-4 text-gray-500" />
         </button>
 
         {open && (
-          <div className="absolute right-0 top-12 w-64 bg-white border rounded-xl shadow-lg z-50">
+          <div className="absolute right-0 top-full mt-2 w-64 bg-white border rounded-xl shadow-lg z-50">
             <div className="px-4 py-3">
               <div className="font-semibold truncate">{name}</div>
-              {email && <div className="text-sm text-gray-600 truncate">{email}</div>}
+              {email && <div className="text-sm text-gray-600">{email}</div>}
             </div>
             <div className="border-t">
-              <button onClick={() => { if (typeof window !== 'undefined') window.location.href = '/dashboard'; }} className="w-full flex items-center px-4 py-2 hover:bg-gray-50">
+              <button
+                onClick={() => { if (typeof window !== 'undefined') window.location.href = '/settings'; }}
+                className="w-full flex items-center px-4 py-2 hover:bg-gray-50"
+              >
                 <Settings className="w-4 h-4 mr-2" />
                 <span>Cài đặt tài khoản</span>
               </button>
-              <button onClick={onLogout} className="w-full flex items-center px-4 py-2 text-red-600 hover:bg-red-50">
+
+              <button
+                onClick={onLogout}
+                className="w-full flex items-center px-4 py-2 text-red-600 hover:bg-red-50"
+              >
                 <LogOut className="w-4 h-4 mr-2" />
                 <span>Đăng xuất</span>
               </button>

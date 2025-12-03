@@ -109,7 +109,7 @@ async def lifespan(app: FastAPI):
         logger.error(f"❌ Error during cleanup: {str(e)}")
 
 app = FastAPI(
-    title="MeSale - MekongAI Social Media Management API",
+    title="HueAI - Social Media Management API",
     description="Comprehensive API for managing social media, bots, CRM, knowledge base, and more",
     version="1.0.0",
     lifespan=lifespan
@@ -117,11 +117,12 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    # allow_origins=["http://127.0.0.1:3000/", "http://127.0.0.1:3000", "https://mekongai-social-media-bot.vercel.app/",
-    #                "https://mekongai-social-media-bot.vercel.app", "https://mekongai.net/", "https://mekongai.net", "https://admin-mekongai-social-media-bot.vercel.app/",
-    #                "https://admin-mekongai-social-media-bot.vercel.app", "https://www.mekongai.net", "https://www.mekongai.net/", "https://api-mesale.mekongai.com/", "https://api-mesale.mekongai.com", "https://www.api-mesale.mekongai.com", "https://www.api-mesale.mekongai.com/",
-    #                ],
+    allow_origins=[
+        "http://localhost:3002",
+        "http://127.0.0.1:3002",
+        "http://192.168.137.1:3002",
+    ],
+    allow_origin_regex=r"http://.*:3002$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -321,7 +321,11 @@ class RAGAPIService:
                 }
             },
             "supported_file_types": {
-                "advanced": [".pdf", ".doc", ".docx", ".xls", ".xlsx"],
+                "advanced": [
+                    ".pdf", ".doc", ".docx", ".xls", ".xlsx",
+                    ".pptx", ".html", ".htm",
+                    ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tiff"
+                ],
                 "simple": simple_types
             }
         }

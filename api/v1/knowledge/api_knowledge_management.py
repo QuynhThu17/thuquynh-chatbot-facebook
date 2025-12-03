@@ -65,7 +65,7 @@ async def upload_document(
     name: str = Form(""),
     company_id: Optional[str] = Form(""),
     process_images: bool = Form(False),
-    parser_engine: str = Form("ragflow"),
+    parser_engine: str = Form("docling"),
     rag_service: RAGAPIService = Depends(get_enhanced_rag_service),
     current_user: dict = Depends(get_current_user),
     factory = Depends(get_management_factory)
@@ -162,9 +162,9 @@ async def upload_document(
         tag_list = []
         
         # Validate parser_engine
-        if parser_engine not in ["ragflow", "legacy"]:
-            logger.warning(f"Invalid parser_engine '{parser_engine}', using default 'ragflow'")
-            parser_engine = "ragflow"
+        if parser_engine not in ["docling", "ragflow", "legacy"]:
+            logger.warning(f"Invalid parser_engine '{parser_engine}', using default 'docling'")
+            parser_engine = "docling"
         
         # Process document using Enhanced RAG Service with RAGFlow
         result = await rag_service.process_document_upload(
