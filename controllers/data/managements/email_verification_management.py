@@ -50,25 +50,26 @@ class EmailVerificationManager(BaseManager):
             vietnam_timezone = timezone(timedelta(hours=7))
             current_time = datetime.now(vietnam_timezone)
 
-            # Tìm verification record
+            normalized_email = (email or "").strip()
+            normalized_code = str(verification_code or "").strip()
+
             verification = await self.collection.find_one({
-                "email": email,
-                "verification_code": verification_code,
+                "email": normalized_email,
+                "verification_code": normalized_code,
                 "verified": False,
                 "expires_at": {"$gt": current_time}
             })
 
             if not verification:
-                logger.warning(f"Invalid or expired verification code for email: {email}")
+                logger.warning(f"Invalid or expired verification code for email: {normalized_email}")
                 return False
 
-            # Đánh dấu đã verified
             await self.collection.update_one(
                 {"_id": verification["_id"]},
                 {"$set": {"verified": True}}
             )
 
-            logger.info(f"Email verified successfully: {email}")
+            logger.info(f"Email verified successfully: {normalized_email}")
             return True
 
         except Exception as e:
