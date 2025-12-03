@@ -1,7 +1,12 @@
 import { getAccessToken, getRefreshToken, saveTokens, clearTokens } from "./auth-storage";
 import { tokenRefreshManager } from "./token-refresh";
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:1975/api/v1").replace(/\/$/, "");
+const API_BASE = (
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  (typeof window !== "undefined"
+    ? `${window.location.protocol}//${window.location.hostname}:1975/api/v1`
+    : "http://localhost:1975/api/v1")
+).replace(/\/$/, "");
 
 // Use the singleton instance from token-refresh.ts
 

@@ -22,9 +22,7 @@ sys.path.append(str(project_root))
 from chunkers import ChunkerFactory, ChunkResult
 from embedders import EmbedderFactory, EmbeddingResult
 from processors.base_processor import BaseDocumentProcessor, DocumentContent, ProcessedChunk, PageContent
-from processors.pdf_processor import PDFProcessor
-from processors.doc_processor import DocProcessor
-from processors.excel_processor import ExcelProcessor
+from processors.docling_processor import DoclingProcessor
 from processors.ragflow_parser import get_ragflow_parser
 from storage.s3_service import S3Service
 from controllers.rag.load_documents.utils import DocumentUtils
@@ -57,13 +55,20 @@ class DocumentLoaderService:
         self.document_manager = DocumentManager(db_manager)
         self.s3_service = S3Service()
         
-        # Đăng ký các processors (legacy)
         self.processors = {
-            '.pdf': PDFProcessor(),
-            '.docx': DocProcessor(),
-            '.doc': DocProcessor(),
-            '.xlsx': ExcelProcessor(),
-            '.xls': ExcelProcessor()
+            '.pdf': DoclingProcessor(),
+            '.docx': DoclingProcessor(),
+            '.pptx': DoclingProcessor(),
+            '.xlsx': DoclingProcessor(),
+            '.xls': DoclingProcessor(),
+            '.html': DoclingProcessor(),
+            '.htm': DoclingProcessor(),
+            '.png': DoclingProcessor(),
+            '.jpg': DoclingProcessor(),
+            '.jpeg': DoclingProcessor(),
+            '.gif': DoclingProcessor(),
+            '.bmp': DoclingProcessor(),
+            '.tiff': DoclingProcessor(),
         }
         
         # Initialize RAGFlow parser (mặc định)
@@ -112,8 +117,7 @@ class DocumentLoaderService:
             # Get process_images flag from options (default: False)
             process_images = processing_options.get("process_images", False) if processing_options else False
             
-            # Get parser_engine option (default: ragflow)
-            parser_engine = processing_options.get("parser_engine", "ragflow") if processing_options else "ragflow"
+            parser_engine = processing_options.get("parser_engine", "docling") if processing_options else "docling"
             
             # Override use_ragflow based on parser_engine
             use_ragflow_for_this_doc = (parser_engine == "ragflow") and self.use_ragflow
@@ -1273,7 +1277,7 @@ class DocumentLoaderService:
                 page_num = page.page_number
                 
                 # Replace image IDs with URLs in full content
-                full_page_content = page.text_content
+                full_page_content = page.full_content or page.text_content
                 for image in page.images:
                     image_id = image.get("image_id")
                     if image_id in image_urls_mapping:
@@ -1286,76 +1290,71 @@ class DocumentLoaderService:
                     "source_id": document_id,
                     "title": analysis.get("file_name", "Unknown")
                 }
+                is_pdf = (analysis.get("file_type") == "pdf") or (document_content.metadata.get("file_extension", "").lower() == ".pdf")
                 
-                # 1. Tạo text chunks cho page này
-                if page.text_content.strip():
-                    text_chunks = DocumentUtils.chunk_text(page.text_content, 
-                                                         analysis.get('optimal_chunk_size', 1000), 
-                                                         analysis.get('optimal_overlap', 200))
-                    
-                    for chunk_data in text_chunks:
-                        try:
-                            # Generate embedding cho text thuần
-                            embedding = await DocumentUtils.generate_embedding(str(chunk_data["content"]).lower())
-                            if not embedding:
-                                continue
-                                
-                            chunk_metadata = {
-                                "chunk_index": chunk_data["chunk_index"],
-                                "chunk_type": "text", 
-                                "page_number": page_num,
-                                "start_position": chunk_data["start_position"],
-                                "end_position": chunk_data["end_position"],
-                                "chunk_length": chunk_data["length"],
-                                "document_metadata": analysis,
-                                "processed_at": datetime.now().isoformat()
-                            }
-                            
-                            # Chuẩn bị chunk data cho bulk insert
-                            chunk_doc = {
-                                "content": full_page_content,  # Full page content including images
-                                "content_embedding_text": chunk_data["content"],  # Small text chunk for search
-                                "content_embedding": embedding,
-                                "chunk_type": "text",
-                                "source_info": source_info,
-                                "metadata": chunk_metadata,
-                                "user_id": user_id,
-                                "company_id": company_id
-                            }
-                            all_chunks_data.append(chunk_doc)
-                            
-                        except Exception as e:
-                            logger.error(f"Error preparing text chunk {chunk_data['chunk_index']} page {page_num}: {str(e)}")
-                            continue
-                
-                # 2. Tạo full page chunk
-                if full_page_content.strip():
+                # 1. Chunk theo page cho PDF: mỗi page → một chunk duy nhất
+                if is_pdf:
                     try:
-                        page_embedding = await DocumentUtils.generate_embedding(page.text_content.lower())
+                        page_embedding = await DocumentUtils.generate_embedding((page.text_content or "").lower())
                         if page_embedding:
                             page_metadata = {
-                                "chunk_type": "text",
+                                "chunk_type": "page",
                                 "page_number": page_num,
-                                "text_length": len(page.text_content),
+                                "text_length": len(page.text_content or ""),
                                 "image_count": len(page.images),
                                 "document_metadata": analysis,
                                 "processed_at": datetime.now().isoformat()
                             }
-                            
                             page_chunk_doc = {
                                 "content": full_page_content,
-                                "content_embedding_text": page.text_content,  # Full page text for embedding
+                                "content_embedding_text": page.text_content or "",
                                 "content_embedding": page_embedding,
-                                "chunk_type": "text",
+                                "chunk_type": "page",
                                 "source_info": source_info,
                                 "metadata": page_metadata,
                                 "user_id": user_id,
                                 "company_id": company_id
                             }
                             all_chunks_data.append(page_chunk_doc)
-                            
                     except Exception as e:
                         logger.error(f"Error preparing page chunk for page {page_num}: {str(e)}")
+                else:
+                    # 1b. Với non-PDF: chia nhỏ theo semantic như trước
+                    if (page.full_content or page.text_content).strip():
+                        text_chunks = DocumentUtils.chunk_text(page.text_content, 
+                                                             analysis.get('optimal_chunk_size', 1000), 
+                                                             analysis.get('optimal_overlap', 200))
+                        for chunk_data in text_chunks:
+                            try:
+                                embedding = await DocumentUtils.generate_embedding(str(chunk_data["content"]).lower())
+                                if not embedding:
+                                    continue
+                                chunk_metadata = {
+                                    "chunk_index": chunk_data["chunk_index"],
+                                    "chunk_type": "text", 
+                                    "page_number": page_num,
+                                    "start_position": chunk_data["start_position"],
+                                    "end_position": chunk_data["end_position"],
+                                    "chunk_length": chunk_data["length"],
+                                    "document_metadata": analysis,
+                                    "processed_at": datetime.now().isoformat()
+                                }
+                                chunk_doc = {
+                                    "content": full_page_content,
+                                    "content_embedding_text": chunk_data["content"],
+                                    "content_embedding": embedding,
+                                    "chunk_type": "text",
+                                    "source_info": source_info,
+                                    "metadata": chunk_metadata,
+                                    "user_id": user_id,
+                                    "company_id": company_id
+                                }
+                                all_chunks_data.append(chunk_doc)
+                            except Exception as e:
+                                logger.error(f"Error preparing text chunk {chunk_data['chunk_index']} page {page_num}: {str(e)}")
+                                continue
+                
+                # 2. Image chunks giữ nguyên hành vi (phụ thuộc process_images ở upstream)
                 
                 # 3. Tạo individual image chunks
                 for image in page.images:

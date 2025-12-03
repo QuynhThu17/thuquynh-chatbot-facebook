@@ -1,6 +1,4 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
+const nextConfig = {
   // distDir: ".next-dev-alt",
   images: {
     remotePatterns: [
@@ -31,6 +29,13 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  experimental: {
+    allowedDevOrigins: [
+      "http://localhost:3002",
+      "http://127.0.0.1:3002",
+      "http://192.168.137.1:3002",
+    ],
+  } as any,
 };
 
 export default nextConfig;
