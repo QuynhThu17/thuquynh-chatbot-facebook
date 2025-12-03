@@ -110,8 +110,8 @@ SECRET_KEY = "54d66538-9654-4b34-9f62-7465b3a8ce54"
 JWT_REFRESH_KEY = "7b75afc6-dda1-4a9f-a9c4-71c7504d5a29"
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
-SMTP_USER = "mekongai.dev.tuan@gmail.com"
-SMTP_PASSWORD = "fcff jqoa hqjg pgta"
+SMTP_USER = "hueaitest@gmail.com"
+SMTP_PASSWORD = "udsd nwgx cwjg drbw"
 VERIFICATION_TIMEOUT = 5 * 60
 
 # JWT login:
