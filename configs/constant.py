@@ -1,4 +1,5 @@
 import os
+import secrets
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -106,8 +107,8 @@ WHITE_LABEL_DOMAIN = os.getenv("WHITE_LABEL_DOMAIN", "mekongai.com")
 
 # ================================================
 # EMAIL
-SECRET_KEY = "54d66538-9654-4b34-9f62-7465b3a8ce54"
-JWT_REFRESH_KEY = "7b75afc6-dda1-4a9f-a9c4-71c7504d5a29"
+SECRET_KEY = os.getenv("SECRET_KEY", secrets.token_urlsafe(32))
+JWT_REFRESH_KEY = os.getenv("JWT_REFRESH_KEY", secrets.token_urlsafe(32))
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 SMTP_USER = "hueaitest@gmail.com"
@@ -115,7 +116,7 @@ SMTP_PASSWORD = "udsd nwgx cwjg drbw"
 VERIFICATION_TIMEOUT = 5 * 60
 
 # JWT login:
-JWT = "5878fe66-08ed-4e52-afee-86a16f1eb030"
+JWT = os.getenv("JWT", secrets.token_urlsafe(32))
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 ACCESS_REFRESH_TOKEN_EXPIRE_DAY = 365

@@ -97,7 +97,11 @@ def _create_memory_instance() -> Memory:
 
 
 # Initialize memory with safe configuration
-memory = _create_memory_instance()
+_enable_mem0 = os.getenv("ENABLE_MEM0", "false").lower() == "true"
+try:
+    memory = _create_memory_instance() if _enable_mem0 else None
+except Exception:
+    memory = None
 
 # ================================================
 vietnam_tz = pytz.timezone('Asia/Ho_Chi_Minh')

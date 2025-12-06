@@ -116,17 +116,16 @@ class BaseDocumentProcessor(ABC):
         """
         if not text:
             return ""
-            
-        # Loại bỏ các ký tự không cần thiết
-        text = text.strip()
-        
-        # Loại bỏ nhiều space liên tiếp
+        text = text.replace("\r\n", "\n").replace("\r", "\n").replace("\t", " ")
         import re
-        text = re.sub(r'\s+', ' ', text)
-        
-        # Loại bỏ các ký tự đặc biệt không mong muốn
         text = re.sub(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]', '', text)
-        
+        lines = text.split("\n")
+        processed = []
+        for line in lines:
+            line = re.sub(r' {2,}', ' ', line.strip())
+            processed.append(line)
+        text = "\n".join(processed).strip()
+        text = re.sub(r'\n{3,}', '\n\n', text)
         return text
         
     def sanitize_filename_for_ascii(self, filename: str) -> str:
