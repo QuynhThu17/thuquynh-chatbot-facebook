@@ -25,7 +25,7 @@ from configs.constant import (
 )
 
 # Password hashing context
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["bcrypt_sha256", "bcrypt"], default="bcrypt_sha256", deprecated="auto")
 
 class AuthService:
     def __init__(self):
@@ -36,12 +36,16 @@ class AuthService:
         self.refresh_token_expire_days = ACCESS_REFRESH_TOKEN_EXPIRE_DAY
 
     def hash_password(self, password: str) -> str:
-        """Hash password using bcrypt"""
-        return pwd_context.hash(password)
+        return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
     def verify_password(self, plain_password: str, hashed_password: str) -> bool:
-        """Verify password against hash"""
-        return pwd_context.verify(plain_password, hashed_password)
+        try:
+            return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
+        except Exception:
+            try:
+                return pwd_context.verify(plain_password, hashed_password)
+            except Exception:
+                return False
 
     def create_access_token(self, data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
         """Create JWT access token"""

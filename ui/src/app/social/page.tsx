@@ -36,6 +36,11 @@ const SocialPage = () => {
   const loading = accountsQuery.isLoading;
 
   const SOCIAL_ID = "s_facebook";
+  const apiBase = (
+    process.env.NEXT_PUBLIC_API_BASE_URL ||
+    (typeof window !== "undefined" ? "https://osmious-berenice-unconfusedly.ngrok-free.dev/api/v1" : "http://localhost:1975/api/v1")
+  ).replace(/\/$/, "");
+  const webhookUrl = `${apiBase}/socials/facebook/webhook`;
 
   async function startConnect() {
     setIsConnecting(true);
@@ -151,6 +156,20 @@ const SocialPage = () => {
                 <div className="text-3xl font-bold text-gray-900">{accounts.length}</div>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Webhook Setup */}
+        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-xl font-bold text-gray-900">Cấu hình Webhook Messenger</h2>
+          </div>
+          <div className="space-y-2 text-sm text-gray-700">
+            <div className="flex items-center justify-between">
+              <span className="font-medium">Callback URL</span>
+              <span className="px-3 py-1 rounded-lg border bg-gray-50 text-gray-900">{webhookUrl}</span>
+            </div>
+            <p className="text-gray-600">Thiết lập Callback URL và Verify Token trong Facebook App (Messenger). Sau đó kích hoạt bot để đăng ký sự kiện.</p>
           </div>
         </div>
 

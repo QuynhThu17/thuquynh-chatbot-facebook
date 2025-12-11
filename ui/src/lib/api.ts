@@ -100,7 +100,7 @@ export async function refreshToken(): Promise<{ success: boolean; message?: stri
   
   const res = await fetch(url("/auth/refresh"), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" },
     body: JSON.stringify({ refresh_token: refreshToken }),
     credentials: "include",
   });
@@ -135,7 +135,7 @@ export async function logout(): Promise<{ success: boolean; message?: string }> 
 export async function verifyEmail(email: string, code: string): Promise<{ success: boolean; message?: string }> {
   const res = await fetch(url("/auth/verify-email"), {
     method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    headers: { "Content-Type": "application/json", Accept: "application/json", "ngrok-skip-browser-warning": "true" },
     body: JSON.stringify({ email, verification_code: code.trim() }),
   });
   return handle(res);
@@ -177,6 +177,7 @@ async function apiFetch(path: string, options: RequestInit = {}) {
   if (!isFormData && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
+  headers.set("ngrok-skip-browser-warning", "true");
   
   try {
     const response = await fetch(url(path), {

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { type SocialPage, getBots, type Bot, connectBotToSocial, disconnectBotFromSocial } from "@/lib/api";
+import { useActivateBotMutation } from "@/lib/queries";
 import { useSocialPagesQuery } from "@/lib/queries";
 import { RefreshCcw, Loader2, Grid3x3, List, PlugZap } from "lucide-react";
 
@@ -19,6 +20,7 @@ export function SocialPagesModal({ open, onClose, socialId, accountId }: { open:
   const [botSearch, setBotSearch] = useState("");
   const [selectedBotId, setSelectedBotId] = useState<string | number | null>(null);
   const [connecting, setConnecting] = useState(false);
+  const activateBotMutation = useActivateBotMutation();
 
   useEffect(() => {
     if (!open) return;
@@ -63,6 +65,12 @@ export function SocialPagesModal({ open, onClose, socialId, accountId }: { open:
     try {
       setConnecting(true);
       await connectBotToSocial(selectedBotId, { social_id: socialId, social_page_id: selectedPage.id });
+      try {
+        await activateBotMutation.mutateAsync(String(selectedBotId));
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "Kích hoạt bot thất bại";
+        setError(msg);
+      }
       await reload();
       setSelectOpen(false);
       setSelectedPage(null);
