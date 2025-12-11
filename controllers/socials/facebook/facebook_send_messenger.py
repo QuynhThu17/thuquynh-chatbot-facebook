@@ -1,4 +1,5 @@
 import requests
+from urllib.parse import urlsplit, urlunsplit, quote
 import asyncio
 from controllers.data.managements import get_mongodb_factory
 
@@ -38,7 +39,7 @@ def send_typing_action(page_id, page_access_token, sender_id, typing = "on"):
     
 
 def send_images(
-    page_id, page_access_token, sender_id, image_urls = []
+    page_id, page_access_token, sender_id, image_urls = [], mode: str = "single", aspect: str = "horizontal"
 ):
     """
     Hàm gửi tin nhắn hình ảnh đến Facebook Messenger.
@@ -50,39 +51,65 @@ def send_images(
         "Authorization": f"Bearer {page_access_token}",
     }
 
-    attachments = []
-
-    for image_url in image_urls:
+    def _encode_public_url(u: str) -> str:
         try:
-            attachments.append({
-                "type": "image",
-                "payload": {"is_reusable": True, "url": image_url},
-            })
-                
-        except Exception as e:
-            pass
+            parts = urlsplit(u)
+            encoded_path = quote(parts.path, safe="/")
+            return urlunsplit((parts.scheme, parts.netloc, encoded_path, parts.query, parts.fragment))
+        except Exception:
+            return u
 
     try:
-        if attachments:
-            send_typing_action(
-                page_id, page_access_token, sender_id
-            )
+        encoded_urls = []
+        for u in image_urls:
+            if not u:
+                continue
+            eu = _encode_public_url(u)
+            encoded_urls.append(eu)
 
-            # Gửi tin nhắn chứa ảnh lên Facebook Messenger
+        if not encoded_urls:
+            return
+
+        if mode == "carousel" and len(encoded_urls) >= 2:
+            send_typing_action(page_id, page_access_token, sender_id)
+            elements = [{"title": " ", "image_url": eu} for eu in encoded_urls[:10]]
             data = {
                 "recipient": {"id": sender_id},
                 "messaging_type": "RESPONSE",
                 "message": {
-                    "attachments": attachments
+                    "attachment": {
+                        "type": "template",
+                        "payload": {
+                            "template_type": "generic",
+                            "elements": elements,
+                            "image_aspect_ratio": (aspect if aspect in ("square", "horizontal") else "horizontal")
+                        }
+                    }
                 },
             }
-
-            response = requests.post(url, headers=headers, json=data, timeout=120)
-            if response.status_code == 200:
-                pass
-            else:
+            resp = requests.post(url, headers=headers, json=data, timeout=120)
+            if resp.status_code != 200:
                 logger.error(
-                    f"Failed to send image. Status code: {response.status_code}, Response: {response.text}"
+                    f"Failed to send carousel. Status: {resp.status_code}, Resp: {resp.text}"
+                )
+            return
+
+        for eu in encoded_urls:
+            send_typing_action(page_id, page_access_token, sender_id)
+            data = {
+                "recipient": {"id": sender_id},
+                "messaging_type": "RESPONSE",
+                "message": {
+                    "attachment": {
+                        "type": "image",
+                        "payload": {"is_reusable": True, "url": eu}
+                    }
+                },
+            }
+            resp = requests.post(url, headers=headers, json=data, timeout=120)
+            if resp.status_code != 200:
+                logger.error(
+                    f"Failed to send image. Status: {resp.status_code}, Resp: {resp.text}"
                 )
 
     except Exception as e:
@@ -184,12 +211,17 @@ async def send_facebook_messenger(
                 )
             elif type == "images":
                 if isinstance(msg, list):
+                    layout = message.get("layout") or message.get("mode") or message.get("display")
+                    use_mode = "carousel" if (layout == "carousel" or len(msg) >= 2) else "single"
+                    aspect = message.get("aspect") or message.get("image_aspect_ratio") or "square"
                     await asyncio.to_thread(
                         send_images,
                         page_id,
                         page_access_token,
                         sender_id,
                         msg,
+                        use_mode,
+                        aspect,
                     )
             else:
                 pass

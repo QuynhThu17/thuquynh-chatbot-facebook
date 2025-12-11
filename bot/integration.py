@@ -232,10 +232,174 @@ async def process_message_with_optimized_agent(
             use_cache=True  # Enable caching
         )
         
-        logger.info(f"✅ Agent completed - Response: '{result['response']}...'")
+        logger.info(f"✅ Agent completed - Response: '{result['response']}'...")
         
         # 7. Send message to Facebook Messenger
         segments = result.get("segments", [])
+        try:
+            import re
+            def _has_image_segment(seg_list):
+                for s in seg_list:
+                    t = s.get("type")
+                    if t == "image":
+                        return True
+                    if t == "images" and isinstance(s.get("data"), list) and s.get("data"):
+                        return True
+                return False
+
+            def _contains_facility_intent(text: str) -> bool:
+                if not text:
+                    return False
+                txt = text.lower()
+                kws_any = [
+                    "cơ sở vật chất",
+                    "co so vat chat",
+                    "khuôn viên",
+                    "khuôn viên trường",
+                    "khuôn viên của trường",
+                    "khuon vien",
+                    "khuon vien truong",
+                    "hình ảnh",
+                    "ảnh",
+                    "phòng học",
+                    "thư viện",
+                    "ký túc",
+                    "kí túc",
+                    "ky tuc",
+                    "phòng thí nghiệm",
+                    "phong thi nghiem",
+                    "laboratory",
+                    "campus"
+                ]
+                for k in kws_any:
+                    if k in txt:
+                        return True
+                return False
+
+            async def _retrieve_facility_images(limit: int = 3):
+                try:
+                    user_id = bot_info.get("user_id")
+                    company_id_local = company_id or bot_info.get("company_id")
+                    km = bot_agent.factory.knowledge_chunk_manager
+                    chunks = await km.get_by_chunk_type("image", user_id=user_id, company_id=company_id_local, limit=200)
+                    urls = []
+                    patterns = [
+                        "cơ sở vật chất",
+                        "co so vat chat",
+                        "khuôn viên",
+                        "khuôn viên trường",
+                        "khuon vien",
+                        "khuon vien truong",
+                        "phòng học",
+                        "thư viện",
+                        "ký túc",
+                        "kí túc",
+                        "ky tuc",
+                        "phòng thí nghiệm",
+                        "phong thi nghiem",
+                        "laboratory",
+                        "campus"
+                    ]
+                    for ch in chunks:
+                        content = str(ch.get("content", ""))
+                        score = 0
+                        lc = content.lower()
+                        for p in patterns:
+                            if p in lc:
+                                score += 1
+                        if score == 0:
+                            continue
+                        found = re.findall(r"<image:([^>]+)>", content)
+                        for u in found:
+                            if u not in urls:
+                                urls.append(u)
+                                if len(urls) >= limit:
+                                    return urls
+                    return urls[:limit]
+                except Exception:
+                    return []
+
+            async def _retrieve_facility_images_from_documents(limit: int = 3):
+                try:
+                    user_id = bot_info.get("user_id")
+                    company_id_local = company_id or bot_info.get("company_id")
+                    dm = bot_agent.factory.document_manager
+                    docs = await dm.get_by_user_id(user_id=user_id, company_id=company_id_local)
+                    urls = []
+                    patterns = [
+                        "cơ sở vật chất",
+                        "co so vat chat",
+                        "khuôn viên",
+                        "khuôn viên trường",
+                        "khuon vien",
+                        "khuon vien truong",
+                        "phòng học",
+                        "thư viện",
+                        "ký túc",
+                        "kí túc",
+                        "ky tuc",
+                        "phòng thí nghiệm",
+                        "phong thi nghiem",
+                        "laboratory",
+                        "campus"
+                    ]
+                    image_exts = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".tiff"}
+                    for d in docs:
+                        ft = str(d.get("file_type", "")).lower()
+                        if ft not in image_exts:
+                            continue
+                        name_text = " ".join([
+                            str(d.get("file_name", "")),
+                            str(d.get("document_name", "")),
+                            str(d.get("title", ""))
+                        ]).lower()
+                        score = 0
+                        for p in patterns:
+                            if p in name_text:
+                                score += 1
+                        if score == 0:
+                            continue
+                        u = d.get("storage_url")
+                        if u and u not in urls:
+                            urls.append(u)
+                            if len(urls) >= limit:
+                                return urls
+                    if urls:
+                        return urls[:limit]
+                    for d in docs:
+                        ft = str(d.get("file_type", "")).lower()
+                        if ft in image_exts:
+                            u = d.get("storage_url")
+                            if u and u not in urls:
+                                urls.append(u)
+                                if len(urls) >= limit:
+                                    return urls
+                    return urls[:limit]
+                except Exception:
+                    return []
+
+            need_images = False
+            if not _has_image_segment(segments):
+                if _contains_facility_intent(message) or _contains_facility_intent(result.get("response", "")):
+                    need_images = True
+            if need_images:
+                default_imgs = []
+                try:
+                    bot_obj = bot_info.get("bot", {}) if isinstance(bot_info, dict) else {}
+                    v = bot_obj.get("default_facility_images")
+                    if isinstance(v, list):
+                        default_imgs = [u for u in v if isinstance(u, str) and u]
+                except Exception:
+                    default_imgs = []
+
+                image_urls = default_imgs[:4] if default_imgs else await _retrieve_facility_images_from_documents(limit=4)
+                if not image_urls:
+                    image_urls = await _retrieve_facility_images(limit=4)
+                if image_urls:
+                    segments.append({"type": "images", "data": image_urls})
+        except Exception:
+            pass
+        
         if segments:
             try:
                 logger.info(f"📤 Sending {len(segments)} segments to Facebook Messenger...")

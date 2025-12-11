@@ -107,8 +107,8 @@ WHITE_LABEL_DOMAIN = os.getenv("WHITE_LABEL_DOMAIN", "mekongai.com")
 
 # ================================================
 # EMAIL
-SECRET_KEY = os.getenv("SECRET_KEY", secrets.token_urlsafe(32))
-JWT_REFRESH_KEY = os.getenv("JWT_REFRESH_KEY", secrets.token_urlsafe(32))
+SECRET_KEY = os.getenv("SECRET_KEY") or os.getenv("JWT_SECRET_KEY") or secrets.token_urlsafe(32)
+JWT_REFRESH_KEY = os.getenv("JWT_REFRESH_KEY") or os.getenv("JWT_REFRESH_SECRET") or secrets.token_urlsafe(32)
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 SMTP_USER = "hueaitest@gmail.com"
@@ -118,8 +118,8 @@ VERIFICATION_TIMEOUT = 5 * 60
 # JWT login:
 JWT = os.getenv("JWT", secrets.token_urlsafe(32))
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
-ACCESS_REFRESH_TOKEN_EXPIRE_DAY = 365
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+ACCESS_REFRESH_TOKEN_EXPIRE_DAY = int(os.getenv("ACCESS_REFRESH_TOKEN_EXPIRE_DAY", os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "365")))
 
 # PARENT ID
 PARENT_ORG_ID = os.getenv("PARENT_ORG_ID", "")
