@@ -47,6 +47,13 @@ export default function HistoryPage() {
   const [sessionFeed, setSessionFeed] = useState<ChatMessage[]>([]);
   const [notifSearch, setNotifSearch] = useState("");
   const [detailLoading, setDetailLoading] = useState(false);
+  const [pageNames, setPageNames] = useState<Record<string, string>>({});
+  const normalizePid = (v?: string | number) => {
+    const s = String(v ?? "");
+    if (!s) return s;
+    const parts = s.split("_");
+    return parts[0] || s;
+  };
 
   const formatRelativeTime = (input?: string | number | Date) => {
     if (!input) return "";
@@ -89,6 +96,52 @@ export default function HistoryPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, historiesQuery.data, historiesQuery.error, sessionsQuery.data, sessionsQuery.error, notificationsQuery.data, notificationsQuery.error]);
+
+  useEffect(() => {
+    const ids = Array.from(
+      new Set(
+        (sessions || [])
+          .map((s) => normalizePid(s.social_page_id))
+          .filter((v) => v)
+      )
+    ).filter((pid) => !(pid in pageNames));
+    if (ids.length === 0) return;
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const results = await Promise.all(
+          ids.map(async (pid) => {
+            try {
+              const res = await getSocialPageById("s_facebook", pid);
+              const data: any = (res as any)?.data;
+              const name: string =
+                (data?.fb_page_name as string) ||
+                (data?.name as string) ||
+                (data?.title as string) ||
+                pid;
+              return { pid, name };
+            } catch {
+              return { pid, name: pid };
+            }
+          })
+        );
+        if (!cancelled && results.length > 0) {
+          setPageNames((prev) => {
+            const next = { ...prev };
+            for (const r of results) {
+              next[r.pid] = r.name;
+            }
+            return next;
+          });
+        }
+      } catch {}
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessions]);
 
   const openChat = async (record: HistoryRecord) => {
     setActiveRecord(record);
@@ -408,7 +461,7 @@ export default function HistoryPage() {
                     <SelectContent>
                       <SelectItem value="__all__">Tất cả trang</SelectItem>
                       {Array.from(new Set(histories.map((h) => String(h.social_page_id || ""))).values()).filter((v) => v).map((v) => (
-                        <SelectItem key={v} value={v}>{v}</SelectItem>
+                        <SelectItem key={v} value={v}>{pageNames[normalizePid(v)] || pageNames[v] || v}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -421,13 +474,13 @@ export default function HistoryPage() {
                     return (
                       <div key={String(s.id)} className={`px-4 py-3 border border-gray-200 rounded-xl mx-4 mb-3 cursor-pointer transition-all duration-200 ${active ? "bg-blue-50 border-blue-300 shadow-md" : "bg-white hover:bg-gray-50 hover:border-blue-300 hover:shadow-md"}`} onClick={() => { if (latest) openChat(latest); else setActiveSessionId(String(s.id)); }}>
                         <div className="flex justify-between">
-                          <div className="font-medium truncate pr-2">{latest?.text || String(s.id)}</div>
+                          <div className="font-medium truncate pr-2">{pageInfo?.fb_page_name}</div>
                         </div>
 
                         <div className="mt-1 text-xs text-gray-500">
                           {formatRelativeTime(latest?.created_at || s.last_activity || "")}
                         </div>
-                        <div className="mt-1 text-xs text-gray-600 truncate">{latest ? `Page: ${String(latest.social_page_id || "")} • Bot: ${String(latest.bot_id || "")}` : ""}</div>
+                        <div className="mt-1 text-xs text-gray-600 truncate">{latest ? `Page: ${pageNames[normalizePid(latest?.social_page_id)] || pageNames[String(latest?.social_page_id || "")] || String(latest?.social_page_id || "")} • Bot: ${String(latest?.bot_id || "")}` : ""}</div>
                         <div className="mt-2 flex items-center justify-end gap-2">
                           <Button variant="outline" size="sm" className="bg-white flex items-center gap-2 hover:bg-red-50 hover:text-red-600 hover:border-red-300" onClick={(e) => { e.stopPropagation(); removeSession(s.id); }}>
                             <Trash2 className="w-4 h-4" />
