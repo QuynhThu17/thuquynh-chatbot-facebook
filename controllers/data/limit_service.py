@@ -331,7 +331,7 @@ class LimitService:
         try:
             if resource_type == "messages_per_month":
                 # Lưu message record để tracking
-                await self.factory.db_manager.create("message_usage", {
+                await self.factory.db_manager.insert_one("message_usage", {
                     "user_id": user_id,
                     "count": amount,
                     "created_at": get_vietnam_now_naive()

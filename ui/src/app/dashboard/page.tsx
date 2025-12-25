@@ -87,7 +87,7 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-2">Overview Dashboard</h1>
+      <h1 className="text-3xl font-bold mb-2">Trang Chủ</h1>
       <p className="text-gray-500 mb-8">Real-time insights into your AI sales and customer engagement</p>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard title="Bots" total={botsTotal} active={botsActive} percentage={0} />

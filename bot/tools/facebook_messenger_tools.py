@@ -84,6 +84,16 @@ class SyncMongoHelper:
         except Exception as e:
             logger.error(f"❌ Sync MongoDB connection error: {e}")
             return False
+
+    def close(self):
+        try:
+            if self.client:
+                self.client.close()
+            self.client = None
+            self.database = None
+        except Exception:
+            self.client = None
+            self.database = None
     
     def find_customer(self, social_page_id: str, customer_id: str):
         """Find customer synchronously với cache"""
@@ -131,6 +141,8 @@ class SyncMongoHelper:
         except Exception as e:
             logger.error(f"Error finding customer: {e}")
             return None
+        finally:
+            self.close()
     
     def _invalidate_customer_cache(self, social_page_id: str, customer_id: str):
         """Invalidate customer cache"""
@@ -220,6 +232,8 @@ class SyncMongoHelper:
         except Exception as e:
             logger.error(f"Error saving customer: {e}")
             return f"❌ Lỗi khi lưu thông tin khách hàng: {e}\n\n"
+        finally:
+            self.close()
     
     def save_order(self, order_data: dict):
         """Save order synchronously"""
@@ -239,6 +253,8 @@ class SyncMongoHelper:
         except Exception as e:
             logger.error(f"Error saving order: {e}")
             return f"❌ Lỗi khi lưu đơn hàng: {e}\n\n"
+        finally:
+            self.close()
     
     def update_order(self, order_id: str, update_data: dict):
         """Update existing order synchronously"""

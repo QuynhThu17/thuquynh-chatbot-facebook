@@ -108,7 +108,7 @@ export function Sidebar() {
         <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tổng quan</h2>
         <Link href="/dashboard" className={getLinkClassName("/dashboard")}>
           <DashboardIcon />
-          Dashboard
+          Trang Chủ
         </Link>
         
         <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider pt-4">AI & Tự động hóa</h2>

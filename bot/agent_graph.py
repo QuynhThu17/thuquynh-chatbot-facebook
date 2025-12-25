@@ -602,10 +602,10 @@ async def generate_response(state: AgentState, llm: ChatOpenAI) -> AgentState:
         # Build prompt - SỬ DỤNG PROMPT CHÍNH
         from configs.prompts import prompt_facebook_messenger
         
-        bot_info = state.get("bot_info", {})
-        identity = bot_info.get("identity", {})
-        procedure = bot_info.get("procedure", {})
-        bot = bot_info.get("bot", {})
+        bot_info = state.get("bot_info", {}) or {}
+        identity = bot_info.get("identity") or {}
+        procedure = bot_info.get("procedure") or {}
+        bot = bot_info.get("bot") or {}
         
         # Lấy Q&A context từ state
         qa_pairs_context = state.get("qa_pairs_context", "")
@@ -623,7 +623,9 @@ async def generate_response(state: AgentState, llm: ChatOpenAI) -> AgentState:
             logger.warning("⚠️ No Q&A context available in state!")
             logger.warning(f"   Full state dump: {state}")
         
-        procedure_content = procedure.get("procedure", "") or procedure.get("content", "")
+        procedure_content = (procedure.get("procedure", "") if isinstance(procedure, dict) else "") or (
+            procedure.get("content", "") if isinstance(procedure, dict) else ""
+        )
         if procedure_content:
             logger.info(f"✅ Using procedure: {len(procedure_content)} chars")
         else:

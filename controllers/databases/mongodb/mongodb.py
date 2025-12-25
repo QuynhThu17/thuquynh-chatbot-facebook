@@ -14,9 +14,12 @@ from bson import ObjectId
 import json
 from configs.environment import get_vietnam_now_naive
 
-# Cấu hình logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+logging.getLogger("pymongo").setLevel(logging.ERROR)
+logging.getLogger("pymongo.pool").setLevel(logging.ERROR)
+logging.getLogger("pymongo.topology").setLevel(logging.ERROR)
+logging.getLogger("pymongo.periodic_executor").setLevel(logging.CRITICAL)
 
 class MongoDBManager:
     """
@@ -49,11 +52,11 @@ class MongoDBManager:
         try:
             self.client = AsyncIOMotorClient(
                 self.connection_string,
-                serverSelectionTimeoutMS=5000,
-                connectTimeoutMS=10000,
-                socketTimeoutMS=10000,
-                maxPoolSize=50,
-                minPoolSize=5
+                serverSelectionTimeoutMS=10000,
+                connectTimeoutMS=20000,
+                socketTimeoutMS=20000,
+                maxPoolSize=100,
+                minPoolSize=10
             )
             
             # Test connection
