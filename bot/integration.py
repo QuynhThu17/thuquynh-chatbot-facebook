@@ -259,17 +259,6 @@ async def process_message_with_optimized_agent(
                     "khuôn viên của trường",
                     "khuon vien",
                     "khuon vien truong",
-                    "hình ảnh",
-                    "ảnh",
-                    "phòng học",
-                    "thư viện",
-                    "ký túc",
-                    "kí túc",
-                    "ky tuc",
-                    "phòng thí nghiệm",
-                    "phong thi nghiem",
-                    "laboratory",
-                    "campus"
                 ]
                 for k in kws_any:
                     if k in txt:
@@ -290,15 +279,6 @@ async def process_message_with_optimized_agent(
                         "khuôn viên trường",
                         "khuon vien",
                         "khuon vien truong",
-                        "phòng học",
-                        "thư viện",
-                        "ký túc",
-                        "kí túc",
-                        "ky tuc",
-                        "phòng thí nghiệm",
-                        "phong thi nghiem",
-                        "laboratory",
-                        "campus"
                     ]
                     for ch in chunks:
                         content = str(ch.get("content", ""))
@@ -333,15 +313,6 @@ async def process_message_with_optimized_agent(
                         "khuôn viên trường",
                         "khuon vien",
                         "khuon vien truong",
-                        "phòng học",
-                        "thư viện",
-                        "ký túc",
-                        "kí túc",
-                        "ky tuc",
-                        "phòng thí nghiệm",
-                        "phong thi nghiem",
-                        "laboratory",
-                        "campus"
                     ]
                     image_exts = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".tiff"}
                     for d in docs:

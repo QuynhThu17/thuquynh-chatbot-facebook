@@ -159,7 +159,7 @@ class RAGAPIService:
                              query: str,
                              user_id: str,
                              company_id: Optional[str] = None,
-                             top_k: int = 5,
+                             top_k: int = 3,
                              similarity_threshold: float = 0.7,
                              filters: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """

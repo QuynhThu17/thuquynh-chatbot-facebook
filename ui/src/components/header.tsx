@@ -34,7 +34,7 @@ export function Header() {
         <button className="p-2 rounded-full hover:bg-gray-100">
           <Search className="w-5 h-5 text-gray-500" />
         </button>
-        <input type="text" placeholder="Search..." className="bg-transparent focus:outline-none" />
+        <input type="text" placeholder="Tìm kiếm..." className="bg-transparent focus:outline-none" />
       </div>
       <div className="flex items-center space-x-4 relative">
         <button className="p-2 rounded-full hover:bg-gray-100">
@@ -45,7 +45,7 @@ export function Header() {
         </button>
         <button onClick={() => setOpen(v => !v)} className="p-2 rounded-full hover:bg-gray-100 flex items-center space-x-2">
           {avatarUrl ? (
-            <Image src={avatarUrl} alt={name} width={58} height={58} className="rounded-full" unoptimized />
+            <Image src={avatarUrl} alt={name} width={38} height={38} className="rounded-full" unoptimized />
           ) : (
             <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center">
               <span className="text-xs font-semibold text-gray-700">{initials(name)}</span>
