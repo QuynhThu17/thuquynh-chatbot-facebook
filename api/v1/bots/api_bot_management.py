@@ -237,6 +237,7 @@ class BotUpdate(BaseModel):
     knowledge: Optional[List[str]] = None  # Mảng document_id
     type: Optional[str] = None
     connect: Optional[List[Dict[str, Any]]] = None  # Mảng connection objects
+    default_facility_images: Optional[List[str]] = None
 
 class LanguageCreate(BaseModel):
     code: str

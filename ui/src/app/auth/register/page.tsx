@@ -84,6 +84,8 @@ export default function RegisterPage() {
         name,
         email,
         password,
+        verification_code: verificationCode.trim(),
+        method: "email_password",
       });
       
       if (response.success) {

@@ -7,6 +7,7 @@ from .base_processor import BaseDocumentProcessor, DocumentContent, ProcessedChu
 from .pdf_processor import PDFProcessor
 from .doc_processor import DocProcessor
 from .excel_processor import ExcelProcessor
+from .docling_processor import DoclingProcessor
 
 __all__ = [
     'BaseDocumentProcessor',
@@ -14,5 +15,6 @@ __all__ = [
     'ProcessedChunk',
     'PDFProcessor',
     'DocProcessor', 
-    'ExcelProcessor'
+    'ExcelProcessor',
+    'DoclingProcessor'
 ]

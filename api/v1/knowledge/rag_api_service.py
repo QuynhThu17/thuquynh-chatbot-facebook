@@ -159,7 +159,7 @@ class RAGAPIService:
                              query: str,
                              user_id: str,
                              company_id: Optional[str] = None,
-                             top_k: int = 5,
+                             top_k: int = 3,
                              similarity_threshold: float = 0.7,
                              filters: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
@@ -321,7 +321,11 @@ class RAGAPIService:
                 }
             },
             "supported_file_types": {
-                "advanced": [".pdf", ".doc", ".docx", ".xls", ".xlsx"],
+                "advanced": [
+                    ".pdf", ".doc", ".docx", ".xls", ".xlsx",
+                    ".pptx", ".html", ".htm",
+                    ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tiff"
+                ],
                 "simple": simple_types
             }
         }

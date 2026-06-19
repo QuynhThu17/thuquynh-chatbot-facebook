@@ -6,6 +6,7 @@ conversation_contexts, languages, translations
 
 import logging
 from typing import Dict, List, Optional, Any, Union
+import asyncio
 from datetime import datetime, timedelta
 from configs.environment import get_vietnam_now_naive
 from bson import ObjectId
@@ -535,6 +536,205 @@ class AnalyticsDataManager(BaseManager):
             return {"metric_type": metric_type, "period_days": days, "data": []}
 
 
+class MajorStatisticManager(BaseManager):
+    def __init__(self, db_manager: MongoDBManager):
+        super().__init__(db_manager, "majors_statistics")
+        self._histories = db_manager.database["histories"]
+        from configs.environment import get_llm
+        self._llm = get_llm()
+
+    async def _extract_from_text(self, text: str) -> Dict[str, Any]:
+        try:
+            from langchain_core.prompts import ChatPromptTemplate
+            prompt = ChatPromptTemplate.from_messages([
+                ("system", "Phân tích câu hỏi tư vấn tuyển sinh. Trả về JSON với các trường: majors (List[str]), topics (List[str]), normalized_question (str). majors là tên ngành học. topics là chủ đề như 'điểm chuẩn', 'học phí', 'cơ hội việc làm', 'chỉ tiêu', 'thời gian đào tạo'. normalized_question là phiên bản chuẩn hóa ngắn gọn."),
+                ("human", "{q}")
+            ])
+            resp = await self._llm.ainvoke(prompt.format_messages(q=text))
+            content = resp.content.strip()
+            if "```json" in content:
+                content = content.split("```json")[1].split("```")[0].strip()
+            elif "```" in content:
+                content = content.split("```")[1].split("```")[0].strip()
+            import json
+            data = json.loads(content)
+            majors = data.get("majors") or []
+            topics = data.get("topics") or []    
+            nq = data.get("normalized_question") or text.strip()
+            if isinstance(majors, str):
+                majors = [majors]
+            if isinstance(topics, str):
+                topics = [topics]
+            return {"majors": [m.strip() for m in majors if m], "topics": [t.strip() for t in topics if t], "normalized_question": nq.strip()}
+        except Exception:
+            return {"majors": [], "topics": [], "normalized_question": text.strip()}
+
+    async def upsert_analysis_for_histories(self, user_id: str, filter_query: Dict[str, Any], max_records: int = 200) -> int:
+        fq = {"user_id": user_id, "status": {"$ne": "deleted"}}
+        fq.update(filter_query or {})
+        cursor = self._histories.find(fq).sort("created_at", -1).limit(max_records)
+        histories = await cursor.to_list(length=max_records)
+        processed = 0
+        existing_ids = await self.collection.find({"user_id": user_id}, {"history_id": 1}).to_list(length=None)
+        existing_set = {doc.get("history_id") for doc in existing_ids}
+        tasks = []
+        for h in histories:
+            hid = h.get("history_id")
+            if not hid or hid in existing_set:
+                continue
+            q = h.get("query") or ""
+            tasks.append(self._extract_from_text(q))
+        results = []
+        if tasks:
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+        idx = 0
+        for h in histories:
+            hid = h.get("history_id")
+            if not hid or hid in existing_set:
+                continue
+            if idx >= len(results):
+                break
+            r = results[idx]
+            idx += 1
+            if isinstance(r, Exception):
+                r = {"majors": [], "topics": [], "normalized_question": (h.get("query") or "").strip()}
+            doc = {
+                "history_id": hid,
+                "user_id": h.get("user_id"),
+                "session_id": h.get("session_id"),
+                "customer_id": h.get("customer_id"),
+                "bot_id": h.get("bot_id"),
+                "social_id": h.get("social_id"),
+                "social_page_id": h.get("social_page_id"),
+                "majors": r.get("majors", []),
+                "topics": r.get("topics", []),
+                "normalized_question": r.get("normalized_question"),
+                "query": h.get("query"),
+                "history_created_at": h.get("created_at")
+            }
+            await self.collection.update_one({"history_id": hid}, {"$set": self._add_timestamps(doc)}, upsert=True)
+            processed += 1
+        return processed
+
+    async def majors_top(self, user_id: str, start_date: datetime = None, end_date: datetime = None, extra_filter: Dict[str, Any] = None, limit: int = 10) -> List[Dict[str, Any]]:
+        f: Dict[str, Any] = {"user_id": user_id}
+        if start_date or end_date:
+            d: Dict[str, Any] = {}
+            if start_date:
+                d["$gte"] = start_date
+            if end_date:
+                d["$lte"] = end_date
+            f["history_created_at"] = d
+        if extra_filter:
+            f.update(extra_filter)
+        pipeline = [
+            {"$match": f},
+            {"$unwind": "$majors"},
+            {"$group": {"_id": "$majors", "count": {"$sum": 1}}},
+            {"$sort": {"count": -1}},
+            {"$limit": limit}
+        ]
+        cursor = self.collection.aggregate(pipeline)
+        docs = await cursor.to_list(length=limit)
+        return [{"major": d.get("_id"), "count": d.get("count", 0)} for d in docs]
+
+    async def majors_timeline(self, user_id: str, start_date: datetime = None, end_date: datetime = None, extra_filter: Dict[str, Any] = None) -> List[Dict[str, Any]]:
+        f: Dict[str, Any] = {"user_id": user_id}
+        if start_date or end_date:
+            d: Dict[str, Any] = {}
+            if start_date:
+                d["$gte"] = start_date
+            if end_date:
+                d["$lte"] = end_date
+            f["history_created_at"] = d
+        if extra_filter:
+            f.update(extra_filter)
+        pipeline = [
+            {"$match": f},
+            {"$unwind": "$majors"},
+            {"$group": {"_id": {"date": {"$dateToString": {"format": "%Y-%m-%d", "date": "$history_created_at"}}, "major": "$majors"}, "count": {"$sum": 1}}},
+            {"$sort": {"_id.date": 1}}
+        ]
+        cursor = self.collection.aggregate(pipeline)
+        rows = await cursor.to_list(length=None)
+        timeline: Dict[str, Dict[str, int]] = {}
+        for r in rows:
+            date = r.get("_id", {}).get("date")
+            major = r.get("_id", {}).get("major")
+            c = r.get("count", 0)
+            if date not in timeline:
+                timeline[date] = {}
+            timeline[date][major] = c
+        result = []
+        for date, counts in timeline.items():
+            result.append({"date": date, "counts": counts})
+        return result
+
+    async def topics_distribution(self, user_id: str, start_date: datetime = None, end_date: datetime = None, extra_filter: Dict[str, Any] = None, major: str = None, limit: int = 20) -> List[Dict[str, Any]]:
+        f: Dict[str, Any] = {"user_id": user_id}
+        if start_date or end_date:
+            d: Dict[str, Any] = {}
+            if start_date:
+                d["$gte"] = start_date
+            if end_date:
+                d["$lte"] = end_date
+            f["history_created_at"] = d
+        if extra_filter:
+            f.update(extra_filter)
+        if major:
+            f["majors"] = major
+        pipeline = [
+            {"$match": f},
+            {"$unwind": "$topics"},
+            {"$group": {"_id": "$topics", "count": {"$sum": 1}}},
+            {"$sort": {"count": -1}},
+            {"$limit": limit}
+        ]
+        cursor = self.collection.aggregate(pipeline)
+        docs = await cursor.to_list(length=limit)
+        return [{"topic": d.get("_id"), "count": d.get("count", 0)} for d in docs]
+
+    async def popular_questions(self, user_id: str, start_date: datetime = None, end_date: datetime = None, extra_filter: Dict[str, Any] = None, limit: int = 20) -> List[Dict[str, Any]]:
+        f: Dict[str, Any] = {"user_id": user_id}
+        if start_date or end_date:
+            d: Dict[str, Any] = {}
+            if start_date:
+                d["$gte"] = start_date
+            if end_date:
+                d["$lte"] = end_date
+            f["history_created_at"] = d
+        if extra_filter:
+            f.update(extra_filter)
+        pipeline = [
+            {"$match": f},
+            {"$group": {"_id": "$normalized_question", "count": {"$sum": 1}, "sample_query": {"$first": "$query"}}},
+            {"$sort": {"count": -1}},
+            {"$limit": limit}
+        ]
+        cursor = self.collection.aggregate(pipeline)
+        docs = await cursor.to_list(length=limit)
+        return [{"question": d.get("_id"), "count": d.get("count", 0), "sample": d.get("sample_query")} for d in docs]
+
+    async def heatmap(self, user_id: str, start_date: datetime = None, end_date: datetime = None, extra_filter: Dict[str, Any] = None) -> List[Dict[str, int]]:
+        f: Dict[str, Any] = {"user_id": user_id}
+        if start_date or end_date:
+            d: Dict[str, Any] = {}
+            if start_date:
+                d["$gte"] = start_date
+            if end_date:
+                d["$lte"] = end_date
+            f["history_created_at"] = d
+        if extra_filter:
+            f.update(extra_filter)
+        pipeline = [
+            {"$match": f},
+            {"$project": {"dow": {"$subtract": [{"$dayOfWeek": "$history_created_at"}, 1]}, "hour": {"$hour": "$history_created_at"}}},
+            {"$group": {"_id": {"dow": "$dow", "hour": "$hour"}, "count": {"$sum": 1}}}
+        ]
+        cursor = self.collection.aggregate(pipeline)
+        rows = await cursor.to_list(length=None)
+        return [{"dow": r.get("_id", {}).get("dow", 0), "hour": r.get("_id", {}).get("hour", 0), "count": r.get("count", 0)} for r in rows]
+
 class ConversationContextManager(BaseManager):
     """Manager cho conversation_contexts collection"""
     
@@ -692,6 +892,7 @@ class AdditionalManagementFactory:
         self._conversation_context_manager = None
         self._language_manager = None
         self._translation_manager = None
+        self._major_statistic_manager = None
     
     @property
     def usage_token_manager(self) -> UsageTokenManager:
@@ -746,3 +947,9 @@ class AdditionalManagementFactory:
         if self._translation_manager is None:
             self._translation_manager = TranslationManager(self.db_manager)
         return self._translation_manager
+
+    @property
+    def major_statistic_manager(self) -> MajorStatisticManager:
+        if self._major_statistic_manager is None:
+            self._major_statistic_manager = MajorStatisticManager(self.db_manager)
+        return self._major_statistic_manager
